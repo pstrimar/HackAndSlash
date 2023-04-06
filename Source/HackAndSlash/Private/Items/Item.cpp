@@ -4,6 +4,7 @@
 #include "Items/Item.h"
 #include "HackAndSlash/DebugMacros.h"
 #include "Components/SphereComponent.h"
+#include "Characters/HackAndSlashCharacter.h"
 
 AItem::AItem()
 {
@@ -36,19 +37,19 @@ float AItem::TransformedCos()
 
 void AItem::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	const FString OtherActorName = OtherActor->GetName();
-	if (GEngine)
+	AHackAndSlashCharacter* HackAndSlashCharacter = Cast<AHackAndSlashCharacter>(OtherActor);
+	if (HackAndSlashCharacter)
 	{
-		GEngine->AddOnScreenDebugMessage(1, 30.f, FColor::Red, OtherActorName);
+		HackAndSlashCharacter->SetOverlappingItem(this);
 	}
 }
 
 void AItem::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	const FString OtherActorName = FString("Ending overlap with: ") + OtherActor->GetName();
-	if (GEngine)
+	AHackAndSlashCharacter* HackAndSlashCharacter = Cast<AHackAndSlashCharacter>(OtherActor);
+	if (HackAndSlashCharacter)
 	{
-		GEngine->AddOnScreenDebugMessage(1, 30.f, FColor::Blue, OtherActorName);
+		HackAndSlashCharacter->SetOverlappingItem(nullptr);
 	}
 }
 
@@ -57,5 +58,11 @@ void AItem::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	RunningTime += DeltaTime;
+
+	if (ItemState == EItemState::EIS_Hovering)
+	{
+		AddActorWorldOffset(FVector(0.f, 0.f, TransformedSin()));
+		AddActorWorldRotation(FRotator(0.f, 45.f * DeltaTime, 0.f));
+	}
 }
 

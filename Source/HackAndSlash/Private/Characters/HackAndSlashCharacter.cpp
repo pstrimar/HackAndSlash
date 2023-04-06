@@ -8,6 +8,9 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Items/Item.h"
+#include "Items/Weapons/Weapon.h"
+#include "Animation/AnimMontage.h"
 
 AHackAndSlashCharacter::AHackAndSlashCharacter()
 {
@@ -43,6 +46,8 @@ void AHackAndSlashCharacter::BeginPlay()
 
 void AHackAndSlashCharacter::Move(const FInputActionValue& Value)
 {
+	if (ActionState == EActionState::EAS_Attacking) return;
+
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 	if (GetController() && MovementVector != FVector2D::ZeroVector)
 	{
@@ -66,6 +71,68 @@ void AHackAndSlashCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
+void AHackAndSlashCharacter::EKeyPressed()
+{
+	AWeapon* OverlappingWeapon = Cast<AWeapon>(OverlappingItem);
+	if (OverlappingWeapon)
+	{
+		OverlappingWeapon->Equip(GetMesh(), FName("RightHandSocket"));
+		CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
+	}
+}
+
+void AHackAndSlashCharacter::Dodge()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(1, 30.f, FColor::Blue, TEXT("Dodge"));
+	}
+}
+
+void AHackAndSlashCharacter::Attack()
+{
+	if (CanAttack())
+	{
+		PlayAttackMontage();
+		ActionState = EActionState::EAS_Attacking;
+	}
+}
+
+bool AHackAndSlashCharacter::CanAttack()
+{
+	return ActionState == EActionState::EAS_Unoccupied &&
+		CharacterState != ECharacterState::ECS_Unequipped;
+}
+
+void AHackAndSlashCharacter::PlayAttackMontage()
+{
+	UAnimInstance* AnimInstace = GetMesh()->GetAnimInstance();
+	if (AnimInstace && AttackMontage)
+	{
+		AnimInstace->Montage_Play(AttackMontage);
+		const int32 Selection = FMath::RandRange(0, 2);
+		FName SectionName = FName();
+		switch (Selection)
+		{
+		case 0:
+			SectionName = FName("Attack1");
+			break;
+		case 1:
+			SectionName = FName("Attack2");
+			break;
+		case 2:
+			SectionName = FName("Attack3");
+			break;
+		}
+		AnimInstace->Montage_JumpToSection(SectionName, AttackMontage);
+	}
+}
+
+void AHackAndSlashCharacter::AttackEnd()
+{
+	ActionState = EActionState::EAS_Unoccupied;
+}
+
 void AHackAndSlashCharacter::Jump()
 {
 	Super::Jump();
@@ -86,6 +153,9 @@ void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 		EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Look);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Jump);
+		EnhancedInputComponent->BindAction(EKeyPressedAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::EKeyPressed);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Attack);
+		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Dodge);
 	}
 
 }

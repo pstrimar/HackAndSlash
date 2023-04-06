@@ -25,5 +25,6 @@ void UHackAndSlashAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	{		
 		GroundSpeed = UKismetMathLibrary::VSizeXY(HackAndSlashMovement->Velocity);
 		IsFalling = HackAndSlashMovement->IsFalling();
+		CharacterState = HackAndSlashCharacter->GetCharacterState();
 	}
 }
