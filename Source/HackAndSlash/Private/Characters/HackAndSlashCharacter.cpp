@@ -182,7 +182,7 @@ void AHackAndSlashCharacter::PlayAttackMontage()
 	}
 }
 
-void AHackAndSlashCharacter::PlayEquipMontage(FName SectionName)
+void AHackAndSlashCharacter::PlayEquipMontage(const FName& SectionName)
 {
 	UAnimInstance* AnimInstace = GetMesh()->GetAnimInstance();
 	if (AnimInstace && EquipMontage)
