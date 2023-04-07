@@ -11,6 +11,7 @@
 #include "Items/Item.h"
 #include "Items/Weapons/Weapon.h"
 #include "Animation/AnimMontage.h"
+#include "Components/BoxComponent.h"
 
 AHackAndSlashCharacter::AHackAndSlashCharacter()
 {
@@ -199,6 +200,14 @@ void AHackAndSlashCharacter::AttackEnd()
 void AHackAndSlashCharacter::Jump()
 {
 	Super::Jump();
+}
+
+void AHackAndSlashCharacter::SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled)
+{
+	if (EquippedWeapon && EquippedWeapon->GetWeaponBox())
+	{
+		EquippedWeapon->GetWeaponBox()->SetCollisionEnabled(CollisionEnabled);
+	}
 }
 
 void AHackAndSlashCharacter::Tick(float DeltaTime)
