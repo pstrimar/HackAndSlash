@@ -161,7 +161,7 @@ void AHackAndSlashCharacter::PlayAttackMontage()
 	if (AnimInstace && AttackMontage)
 	{
 		AnimInstace->Montage_Play(AttackMontage);
-		const int32 Selection = FMath::RandRange(0, 2);
+		const int32 Selection = FMath::RandRange(0, 3);
 		FName SectionName = FName();
 		switch (Selection)
 		{
@@ -174,6 +174,8 @@ void AHackAndSlashCharacter::PlayAttackMontage()
 		case 2:
 			SectionName = FName("Attack3");
 			break;
+		case 3:
+			SectionName = FName("Attack4");
 		}
 		AnimInstace->Montage_JumpToSection(SectionName, AttackMontage);
 	}
