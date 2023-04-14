@@ -8,6 +8,7 @@
 #include "BreakableActor.generated.h"
 
 class UGeometryCollectionComponent;
+class UCapsuleComponent;
 
 UCLASS()
 class HACKANDSLASH_API ABreakableActor : public AActor, public IHitInterface
@@ -19,10 +20,26 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
 
+	UFUNCTION()
+	virtual void OnBreak(const struct FChaosBreakEvent& BreakEvent);
+
 protected:
 	virtual void BeginPlay() override;
 
-private:	
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UGeometryCollectionComponent* GeometryCollection;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UCapsuleComponent* Capsule;
+
+	void SpawnTreasure();
+
+private:	
+	UPROPERTY(EditAnywhere, Category = "Breakable Properties")
+	TArray<TSubclassOf<class ATreasure>> TreasureClasses;
+
+	UPROPERTY(EditAnywhere)
+	float TreasureZOffset;
+
+	bool bBroken = false;
 };
