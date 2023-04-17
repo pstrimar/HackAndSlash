@@ -16,9 +16,12 @@ class HACKANDSLASH_API AWeapon : public AItem
 
 public:
 	AWeapon();
-	void Equip(USceneComponent* InParent, FName InSocketName);
+	void Equip(USceneComponent* InParent, FName InSocketName, AActor* NewOwner, APawn* NewInstigator);
 	void AttachMeshToSocket(USceneComponent* InParent, FName InSocketName);
-	TArray<AActor*> IgnoreActors;
+	TArray<AActor*> IgnoreActors;	
+
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	bool IsTwoHanded;
 	
 
 protected:
@@ -34,6 +37,7 @@ protected:
 	void CreateFields(const FVector& FieldLocation);
 
 private:
+
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	USoundBase* EquipSound;
 
@@ -45,6 +49,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
 	USceneComponent* BoxTraceEnd;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	float Damage = 20.f;
 
 
 public:

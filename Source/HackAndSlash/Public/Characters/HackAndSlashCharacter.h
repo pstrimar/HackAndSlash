@@ -68,7 +68,8 @@ protected:
 	 *  Play montage functions
 	 */
 
-	void PlayAttackMontage();
+	void PlayOneHandedAttackMontage();
+	void PlayTwoHandedAttackMontage();
 	void PlayEquipMontage(const FName& SectionName);
 
 	UFUNCTION(BlueprintCallable)
@@ -109,7 +110,10 @@ private:
 	 */
 
 	UPROPERTY(EditDefaultsOnly, Category = Montages)
-	UAnimMontage* AttackMontage;
+	UAnimMontage* OneHandedAttackMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = Montages)
+	UAnimMontage* TwoHandedAttackMontage;
 
 	UPROPERTY(EditDefaultsOnly, Category = Montages)
 	UAnimMontage* EquipMontage;

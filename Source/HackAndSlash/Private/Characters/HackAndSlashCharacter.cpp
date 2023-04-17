@@ -77,8 +77,8 @@ void AHackAndSlashCharacter::EKeyPressed()
 	AWeapon* OverlappingWeapon = Cast<AWeapon>(OverlappingItem);
 	if (OverlappingWeapon)
 	{
-		OverlappingWeapon->Equip(GetMesh(), FName("RightHandSocket"));
-		CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
+		OverlappingWeapon->Equip(GetMesh(), FName("RightHandSocket"), this, this);
+		CharacterState = OverlappingWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
 		OverlappingItem = nullptr;
 		EquippedWeapon = OverlappingWeapon;
 	}
@@ -93,7 +93,7 @@ void AHackAndSlashCharacter::EKeyPressed()
 		else if (CanArm())
 		{
 			PlayEquipMontage(FName("Equip"));
-			CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
+			CharacterState = EquippedWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
 			ActionState = EActionState::EAS_EquippingWeapon;
 		}
 	}
@@ -111,14 +111,14 @@ void AHackAndSlashCharacter::Attack()
 {
 	if (CanAttack())
 	{
-		PlayAttackMontage();
+		EquippedWeapon->IsTwoHanded ? PlayTwoHandedAttackMontage() : PlayOneHandedAttackMontage();
 		ActionState = EActionState::EAS_Attacking;
 	}
 }
 
 bool AHackAndSlashCharacter::CanAttack()
 {
-	return ActionState == EActionState::EAS_Unoccupied &&
+	return EquippedWeapon && ActionState == EActionState::EAS_Unoccupied &&
 		CharacterState != ECharacterState::ECS_Unequipped;
 }
 
@@ -156,12 +156,12 @@ void AHackAndSlashCharacter::FinishEquipping()
 	ActionState = EActionState::EAS_Unoccupied;
 }
 
-void AHackAndSlashCharacter::PlayAttackMontage()
+void AHackAndSlashCharacter::PlayOneHandedAttackMontage()
 {
 	UAnimInstance* AnimInstace = GetMesh()->GetAnimInstance();
-	if (AnimInstace && AttackMontage)
+	if (AnimInstace && OneHandedAttackMontage)
 	{
-		AnimInstace->Montage_Play(AttackMontage);
+		AnimInstace->Montage_Play(OneHandedAttackMontage);
 		const int32 Selection = FMath::RandRange(0, 3);
 		FName SectionName = FName();
 		switch (Selection)
@@ -178,7 +178,28 @@ void AHackAndSlashCharacter::PlayAttackMontage()
 		case 3:
 			SectionName = FName("Attack4");
 		}
-		AnimInstace->Montage_JumpToSection(SectionName, AttackMontage);
+		AnimInstace->Montage_JumpToSection(SectionName, OneHandedAttackMontage);
+	}
+}
+
+void AHackAndSlashCharacter::PlayTwoHandedAttackMontage()
+{
+	UAnimInstance* AnimInstace = GetMesh()->GetAnimInstance();
+	if (AnimInstace && TwoHandedAttackMontage)
+	{
+		AnimInstace->Montage_Play(TwoHandedAttackMontage);
+		const int32 Selection = FMath::RandRange(0, 1);
+		FName SectionName = FName();
+		switch (Selection)
+		{
+		case 0:
+			SectionName = FName("Attack1");
+			break;
+		case 1:
+			SectionName = FName("Attack2");
+			break;
+		}
+		AnimInstace->Montage_JumpToSection(SectionName, TwoHandedAttackMontage);
 	}
 }
 
