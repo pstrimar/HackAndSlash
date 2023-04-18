@@ -43,6 +43,8 @@ void AHackAndSlashCharacter::BeginPlay()
 			Subsystem->AddMappingContext(HackAndSlashMappingContext, 0);
 		}
 	}
+
+	Tags.Add(FName("HackAndSlashCharacter"));
 }
 
 void AHackAndSlashCharacter::Move(const FInputActionValue& Value)

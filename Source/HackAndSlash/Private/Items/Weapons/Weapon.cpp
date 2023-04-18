@@ -62,33 +62,6 @@ void AWeapon::Drop()
 	ItemState = EItemState::EIS_Dropped;
 	GetRootComponent()->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 
-	/*if (AActor* ActorOwner = GetOwner())
-	{
-		const FVector Location = GetActorLocation();
-		const FVector Forward = ActorOwner->GetActorForwardVector();
-
-		const float DropItemDist = 100.f;
-		const float DropItemTraceDist = 1000.f;
-
-		const FVector TraceStart = Location + Forward * DropItemDist;
-		const FVector TraceEnd = TraceStart - FVector::UpVector * DropItemTraceDist;
-
-		TArray<AActor*> ActorsToIgnore = { GetOwner() };
-
-		FHitResult TraceHit;
-
-		FVector TargetLocation = TraceEnd;
-
-		if (UKismetSystemLibrary::LineTraceSingleByProfile(this, TraceStart, TraceEnd, TEXT("WorldStatic"), true, ActorsToIgnore, EDrawDebugTrace::None, TraceHit, true))
-		{
-			if (TraceHit.bBlockingHit)
-			{
-				TargetLocation = TraceHit.Location;
-			}
-		}
-		SetActorLocation(TargetLocation);
-	}*/
-
 	ItemMesh->SetSimulatePhysics(true);
 
 	if (SphereComp)
