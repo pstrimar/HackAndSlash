@@ -77,12 +77,16 @@ protected:
 	bool CanAttack();
 	bool CanDisarm();
 	bool CanArm();
+	bool CanSwap();
 
 	UFUNCTION(BlueprintCallable)
 	void Disarm();
 
 	UFUNCTION(BlueprintCallable)
 	void Arm();
+
+	UFUNCTION(BlueprintCallable)
+	void Swap();
 
 	UFUNCTION(BlueprintCallable)
 	void FinishEquipping();
@@ -104,6 +108,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	AWeapon* EquippedWeapon;
+
+	UPROPERTY(VisibleAnywhere, Category = Weapon)
+	AWeapon* StoredWeapon;
 
 	/**
 	 * Animation montages

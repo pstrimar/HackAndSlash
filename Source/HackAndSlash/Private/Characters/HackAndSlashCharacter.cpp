@@ -77,6 +77,10 @@ void AHackAndSlashCharacter::EKeyPressed()
 	AWeapon* OverlappingWeapon = Cast<AWeapon>(OverlappingItem);
 	if (OverlappingWeapon)
 	{
+		if (EquippedWeapon)
+		{
+			EquippedWeapon->Drop();
+		}
 		OverlappingWeapon->Equip(GetMesh(), FName("RightHandSocket"), this, this);
 		CharacterState = OverlappingWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
 		OverlappingItem = nullptr;
@@ -86,13 +90,29 @@ void AHackAndSlashCharacter::EKeyPressed()
 	{
 		if (CanDisarm())
 		{
+			StoredWeapon = EquippedWeapon;
+			EquippedWeapon = nullptr;
+
 			PlayEquipMontage(FName("Unequip"));
 			CharacterState = ECharacterState::ECS_Unequipped;
 			ActionState = EActionState::EAS_EquippingWeapon;
 		}
 		else if (CanArm())
 		{
+			EquippedWeapon = StoredWeapon;
+			StoredWeapon = nullptr;
+
 			PlayEquipMontage(FName("Equip"));
+			CharacterState = EquippedWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
+			ActionState = EActionState::EAS_EquippingWeapon;
+		}
+		else if (CanSwap())
+		{
+			AWeapon* TempWeapon = EquippedWeapon;
+			EquippedWeapon = StoredWeapon;
+			StoredWeapon = TempWeapon;
+
+			PlayEquipMontage(FName("Swap"));
 			CharacterState = EquippedWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
 			ActionState = EActionState::EAS_EquippingWeapon;
 		}
@@ -125,21 +145,32 @@ bool AHackAndSlashCharacter::CanAttack()
 bool AHackAndSlashCharacter::CanDisarm()
 {
 	return ActionState == EActionState::EAS_Unoccupied && 
-		CharacterState != ECharacterState::ECS_Unequipped;
+		CharacterState != ECharacterState::ECS_Unequipped &&
+		StoredWeapon == nullptr &&
+		EquippedWeapon != nullptr;
 }
 
 bool AHackAndSlashCharacter::CanArm()
 {
 	return ActionState == EActionState::EAS_Unoccupied &&
 		CharacterState == ECharacterState::ECS_Unequipped &&
-		EquippedWeapon;
+		StoredWeapon != nullptr &&
+		EquippedWeapon == nullptr;
+}
+
+bool AHackAndSlashCharacter::CanSwap()
+{
+	return ActionState == EActionState::EAS_Unoccupied &&
+		CharacterState != ECharacterState::ECS_Unequipped &&
+		StoredWeapon != nullptr &&
+		EquippedWeapon != nullptr;
 }
 
 void AHackAndSlashCharacter::Disarm()
 {
-	if (EquippedWeapon)
+	if (StoredWeapon)
 	{
-		EquippedWeapon->AttachMeshToSocket(GetMesh(), FName("SpineSocket"));
+		StoredWeapon->AttachMeshToSocket(GetMesh(), FName("SpineSocket"));
 	}
 }
 
@@ -148,6 +179,18 @@ void AHackAndSlashCharacter::Arm()
 	if (EquippedWeapon)
 	{
 		EquippedWeapon->AttachMeshToSocket(GetMesh(), FName("RightHandSocket"));
+	}
+}
+
+void AHackAndSlashCharacter::Swap()
+{
+	if (EquippedWeapon)
+	{
+		EquippedWeapon->AttachMeshToSocket(GetMesh(), FName("RightHandSocket"));
+	}
+	if (StoredWeapon)
+	{
+		StoredWeapon->AttachMeshToSocket(GetMesh(), FName("SpineSocket"));
 	}
 }
 
