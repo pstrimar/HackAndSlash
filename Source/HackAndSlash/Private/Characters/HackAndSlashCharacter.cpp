@@ -2,20 +2,20 @@
 
 
 #include "Characters/HackAndSlashCharacter.h"
-#include "EnhancedInputComponent.h"
-#include "Components/InputComponent.h"
-#include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "EnhancedInputSubsystems.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Camera/CameraComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Items/Item.h"
 #include "Items/Weapons/Weapon.h"
 #include "Animation/AnimMontage.h"
-#include "Components/BoxComponent.h"
+#include "Components/InputComponent.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
 
 AHackAndSlashCharacter::AHackAndSlashCharacter()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -24,12 +24,45 @@ AHackAndSlashCharacter::AHackAndSlashCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 500.f, 0.f);
 
+	GetMesh()->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	GetMesh()->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+	GetMesh()->SetGenerateOverlapEvents(true);
+
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->TargetArmLength = 300.f;
 
 	ViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ViewCamera"));
 	ViewCamera->SetupAttachment(CameraBoom);
+}
+
+void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Move);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Look);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Jump);
+		EnhancedInputComponent->BindAction(EKeyPressedAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::EKeyPressed);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Attack);
+		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Dodge);
+	}
+
+}
+
+void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint)
+{
+	PlayHitSound(ImpactPoint);
+	SpawnHitParticles(ImpactPoint);
+}
+
+void AHackAndSlashCharacter::Jump()
+{
+	Super::Jump();
 }
 
 void AHackAndSlashCharacter::BeginPlay()
@@ -44,7 +77,7 @@ void AHackAndSlashCharacter::BeginPlay()
 		}
 	}
 
-	Tags.Add(FName("HackAndSlashCharacter"));
+	Tags.Add(FName("EngageableTarget"));
 }
 
 void AHackAndSlashCharacter::Move(const FInputActionValue& Value)
@@ -79,45 +112,32 @@ void AHackAndSlashCharacter::EKeyPressed()
 	AWeapon* OverlappingWeapon = Cast<AWeapon>(OverlappingItem);
 	if (OverlappingWeapon)
 	{
-		if (EquippedWeapon)
-		{
-			EquippedWeapon->Drop();
-		}
-		OverlappingWeapon->Equip(GetMesh(), FName("RightHandSocket"), this, this);
-		CharacterState = OverlappingWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
-		OverlappingItem = nullptr;
-		EquippedWeapon = OverlappingWeapon;
+		EquipWeapon(OverlappingWeapon);
 	}
 	else
 	{
 		if (CanDisarm())
 		{
-			StoredWeapon = EquippedWeapon;
-			EquippedWeapon = nullptr;
-
-			PlayEquipMontage(FName("Unequip"));
-			CharacterState = ECharacterState::ECS_Unequipped;
-			ActionState = EActionState::EAS_EquippingWeapon;
+			Disarm();
 		}
 		else if (CanArm())
 		{
-			EquippedWeapon = StoredWeapon;
-			StoredWeapon = nullptr;
-
-			PlayEquipMontage(FName("Equip"));
-			CharacterState = EquippedWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
-			ActionState = EActionState::EAS_EquippingWeapon;
+			Arm();
 		}
 		else if (CanSwap())
 		{
-			AWeapon* TempWeapon = EquippedWeapon;
-			EquippedWeapon = StoredWeapon;
-			StoredWeapon = TempWeapon;
-
-			PlayEquipMontage(FName("Swap"));
-			CharacterState = EquippedWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
-			ActionState = EActionState::EAS_EquippingWeapon;
+			Swap();
 		}
+	}
+}
+
+void AHackAndSlashCharacter::Attack()
+{
+	Super::Attack();
+	if (CanAttack())
+	{
+		PlayAttackMontage();
+		ActionState = EActionState::EAS_Attacking;
 	}
 }
 
@@ -129,13 +149,21 @@ void AHackAndSlashCharacter::Dodge()
 	}
 }
 
-void AHackAndSlashCharacter::Attack()
+void AHackAndSlashCharacter::EquipWeapon(AWeapon* Weapon)
 {
-	if (CanAttack())
+	if (EquippedWeapon)
 	{
-		EquippedWeapon->IsTwoHanded ? PlayTwoHandedAttackMontage() : PlayOneHandedAttackMontage();
-		ActionState = EActionState::EAS_Attacking;
+		EquippedWeapon->Drop();
 	}
+	Weapon->Equip(GetMesh(), FName("RightHandSocket"), this, this);
+	CharacterState = Weapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
+	OverlappingItem = nullptr;
+	EquippedWeapon = Weapon;
+}
+
+void AHackAndSlashCharacter::AttackEnd()
+{
+	ActionState = EActionState::EAS_Unoccupied;
 }
 
 bool AHackAndSlashCharacter::CanAttack()
@@ -152,12 +180,32 @@ bool AHackAndSlashCharacter::CanDisarm()
 		EquippedWeapon != nullptr;
 }
 
+void AHackAndSlashCharacter::Disarm()
+{
+	StoredWeapon = EquippedWeapon;
+	EquippedWeapon = nullptr;
+
+	PlayEquipMontage(FName("Unequip"));
+	CharacterState = ECharacterState::ECS_Unequipped;
+	ActionState = EActionState::EAS_EquippingWeapon;
+}
+
 bool AHackAndSlashCharacter::CanArm()
 {
 	return ActionState == EActionState::EAS_Unoccupied &&
 		CharacterState == ECharacterState::ECS_Unequipped &&
 		StoredWeapon != nullptr &&
 		EquippedWeapon == nullptr;
+}
+
+void AHackAndSlashCharacter::Arm()
+{
+	EquippedWeapon = StoredWeapon;
+	StoredWeapon = nullptr;
+
+	PlayEquipMontage(FName("Equip"));
+	CharacterState = EquippedWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
+	ActionState = EActionState::EAS_EquippingWeapon;
 }
 
 bool AHackAndSlashCharacter::CanSwap()
@@ -168,7 +216,28 @@ bool AHackAndSlashCharacter::CanSwap()
 		EquippedWeapon != nullptr;
 }
 
-void AHackAndSlashCharacter::Disarm()
+void AHackAndSlashCharacter::Swap()
+{
+	AWeapon* TempWeapon = EquippedWeapon;
+	EquippedWeapon = StoredWeapon;
+	StoredWeapon = TempWeapon;
+
+	PlayEquipMontage(FName("Swap"));
+	CharacterState = EquippedWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
+	ActionState = EActionState::EAS_EquippingWeapon;
+}
+
+void AHackAndSlashCharacter::PlayEquipMontage(const FName& SectionName)
+{
+	UAnimInstance* AnimInstace = GetMesh()->GetAnimInstance();
+	if (AnimInstace && EquipMontage)
+	{
+		AnimInstace->Montage_Play(EquipMontage);
+		AnimInstace->Montage_JumpToSection(SectionName, EquipMontage);
+	}
+}
+
+void AHackAndSlashCharacter::AttachWeaponToBack()
 {
 	if (StoredWeapon)
 	{
@@ -176,7 +245,7 @@ void AHackAndSlashCharacter::Disarm()
 	}
 }
 
-void AHackAndSlashCharacter::Arm()
+void AHackAndSlashCharacter::AttachWeaponToHand()
 {
 	if (EquippedWeapon)
 	{
@@ -184,7 +253,7 @@ void AHackAndSlashCharacter::Arm()
 	}
 }
 
-void AHackAndSlashCharacter::Swap()
+void AHackAndSlashCharacter::SwapAttachedWeapons()
 {
 	if (EquippedWeapon)
 	{
@@ -200,102 +269,3 @@ void AHackAndSlashCharacter::FinishEquipping()
 {
 	ActionState = EActionState::EAS_Unoccupied;
 }
-
-void AHackAndSlashCharacter::PlayOneHandedAttackMontage()
-{
-	UAnimInstance* AnimInstace = GetMesh()->GetAnimInstance();
-	if (AnimInstace && OneHandedAttackMontage)
-	{
-		AnimInstace->Montage_Play(OneHandedAttackMontage);
-		const int32 Selection = FMath::RandRange(0, 3);
-		FName SectionName = FName();
-		switch (Selection)
-		{
-		case 0:
-			SectionName = FName("Attack1");
-			break;
-		case 1:
-			SectionName = FName("Attack2");
-			break;
-		case 2:
-			SectionName = FName("Attack3");
-			break;
-		case 3:
-			SectionName = FName("Attack4");
-		}
-		AnimInstace->Montage_JumpToSection(SectionName, OneHandedAttackMontage);
-	}
-}
-
-void AHackAndSlashCharacter::PlayTwoHandedAttackMontage()
-{
-	UAnimInstance* AnimInstace = GetMesh()->GetAnimInstance();
-	if (AnimInstace && TwoHandedAttackMontage)
-	{
-		AnimInstace->Montage_Play(TwoHandedAttackMontage);
-		const int32 Selection = FMath::RandRange(0, 1);
-		FName SectionName = FName();
-		switch (Selection)
-		{
-		case 0:
-			SectionName = FName("Attack1");
-			break;
-		case 1:
-			SectionName = FName("Attack2");
-			break;
-		}
-		AnimInstace->Montage_JumpToSection(SectionName, TwoHandedAttackMontage);
-	}
-}
-
-void AHackAndSlashCharacter::PlayEquipMontage(const FName& SectionName)
-{
-	UAnimInstance* AnimInstace = GetMesh()->GetAnimInstance();
-	if (AnimInstace && EquipMontage)
-	{
-		AnimInstace->Montage_Play(EquipMontage);
-		AnimInstace->Montage_JumpToSection(SectionName, EquipMontage);
-	}
-}
-
-void AHackAndSlashCharacter::AttackEnd()
-{
-	ActionState = EActionState::EAS_Unoccupied;
-}
-
-void AHackAndSlashCharacter::Jump()
-{
-	Super::Jump();
-}
-
-void AHackAndSlashCharacter::SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled)
-{
-	if (EquippedWeapon && EquippedWeapon->GetWeaponBox())
-	{
-		EquippedWeapon->GetWeaponBox()->SetCollisionEnabled(CollisionEnabled);
-		EquippedWeapon->IgnoreActors.Empty();
-	}
-}
-
-void AHackAndSlashCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
-void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
-	{
-		EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Move);
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Look);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Jump);
-		EnhancedInputComponent->BindAction(EKeyPressedAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::EKeyPressed);
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Attack);
-		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Dodge);
-	}
-
-}
-
