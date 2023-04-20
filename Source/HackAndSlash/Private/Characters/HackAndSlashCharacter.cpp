@@ -58,6 +58,7 @@ void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, A
 {
 	Super::GetHit_Implementation(ImpactPoint, Hitter);
 
+	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 	ActionState = EActionState::EAS_HitReaction;
 }
 
