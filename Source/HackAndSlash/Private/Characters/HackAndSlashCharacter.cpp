@@ -54,9 +54,9 @@ void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 
 }
 
-void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint)
+void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
 {
-	Super::GetHit_Implementation(ImpactPoint);
+	Super::GetHit_Implementation(ImpactPoint, Hitter);
 
 	ActionState = EActionState::EAS_HitReaction;
 }
