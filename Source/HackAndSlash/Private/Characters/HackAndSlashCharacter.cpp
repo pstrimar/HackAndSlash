@@ -56,8 +56,9 @@ void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 
 void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint)
 {
-	PlayHitSound(ImpactPoint);
-	SpawnHitParticles(ImpactPoint);
+	Super::GetHit_Implementation(ImpactPoint);
+
+	ActionState = EActionState::EAS_HitReaction;
 }
 
 void AHackAndSlashCharacter::Jump()
@@ -266,6 +267,11 @@ void AHackAndSlashCharacter::SwapAttachedWeapons()
 }
 
 void AHackAndSlashCharacter::FinishEquipping()
+{
+	ActionState = EActionState::EAS_Unoccupied;
+}
+
+void AHackAndSlashCharacter::HitReactEnd()
 {
 	ActionState = EActionState::EAS_Unoccupied;
 }
