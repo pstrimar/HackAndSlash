@@ -47,6 +47,7 @@ protected:
 	bool CanSwap();
 	void Swap();
 	void PlayEquipMontage(const FName& SectionName);
+	void BoxTrace(TArray<FHitResult>& BoxHits);
 
 	UFUNCTION(BlueprintCallable)
 	void AttachWeaponToBack();
@@ -62,6 +63,15 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void HitReactEnd();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	USceneComponent* BoxTraceStart;
+
+	UPROPERTY(VisibleAnywhere, Category = "Combat")
+	USceneComponent* BoxTraceEnd;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	FVector BoxTraceExtend = FVector(100.f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputMappingContext* HackAndSlashMappingContext;

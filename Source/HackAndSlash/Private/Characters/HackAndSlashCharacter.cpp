@@ -12,6 +12,8 @@
 #include "Components/InputComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Enemy/Enemy.h"
 
 AHackAndSlashCharacter::AHackAndSlashCharacter()
 {
@@ -36,6 +38,12 @@ AHackAndSlashCharacter::AHackAndSlashCharacter()
 
 	ViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ViewCamera"));
 	ViewCamera->SetupAttachment(CameraBoom);
+
+	BoxTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("Box Trace Start"));
+	BoxTraceStart->SetupAttachment(GetRootComponent());
+
+	BoxTraceEnd = CreateDefaultSubobject<USceneComponent>(TEXT("Box Trace End"));
+	BoxTraceEnd->SetupAttachment(GetRootComponent());
 }
 
 void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -58,6 +66,7 @@ void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, A
 {
 	Super::GetHit_Implementation(ImpactPoint, Hitter);
 
+	CombatTarget = nullptr;
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 	ActionState = EActionState::EAS_HitReaction;
 }
@@ -138,6 +147,22 @@ void AHackAndSlashCharacter::Attack()
 	Super::Attack();
 	if (CanAttack())
 	{
+		CombatTarget = nullptr;
+		TArray<FHitResult> BoxHits;
+		BoxTrace(BoxHits);
+
+		for (auto Hit : BoxHits)
+		{
+			if (Hit.GetActor())
+			{
+				if (Hit.GetActor()->ActorHasTag(FName("Enemy")))
+				{
+					CombatTarget = Hit.GetActor();
+					break;
+				}
+			}
+		}		
+
 		PlayAttackMontage();
 		ActionState = EActionState::EAS_Attacking;
 	}
@@ -165,6 +190,7 @@ void AHackAndSlashCharacter::EquipWeapon(AWeapon* Weapon)
 
 void AHackAndSlashCharacter::AttackEnd()
 {
+	CombatTarget = nullptr;
 	ActionState = EActionState::EAS_Unoccupied;
 }
 
@@ -237,6 +263,17 @@ void AHackAndSlashCharacter::PlayEquipMontage(const FName& SectionName)
 		AnimInstace->Montage_Play(EquipMontage);
 		AnimInstace->Montage_JumpToSection(SectionName, EquipMontage);
 	}
+}
+
+void AHackAndSlashCharacter::BoxTrace(TArray<FHitResult>& BoxHits)
+{
+	const FVector Start = BoxTraceStart->GetComponentLocation();
+	const FVector End = BoxTraceEnd->GetComponentLocation();
+
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(this);
+
+	UKismetSystemLibrary::BoxTraceMulti(this, Start, End, BoxTraceExtend, BoxTraceStart->GetComponentRotation(), ETraceTypeQuery::TraceTypeQuery1, false, ActorsToIgnore, EDrawDebugTrace::None, BoxHits, true);
 }
 
 void AHackAndSlashCharacter::AttachWeaponToBack()
