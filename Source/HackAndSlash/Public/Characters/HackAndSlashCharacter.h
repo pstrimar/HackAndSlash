@@ -14,6 +14,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class AItem;
 class UAnimMontage;
+class UHackAndSlashOverlay;
 
 UCLASS()
 class HACKANDSLASH_API AHackAndSlashCharacter : public ABaseCharacter
@@ -23,6 +24,7 @@ class HACKANDSLASH_API AHackAndSlashCharacter : public ABaseCharacter
 public:
 	AHackAndSlashCharacter();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 	virtual void Jump() override;
 
@@ -48,6 +50,8 @@ protected:
 	void Swap();
 	void PlayEquipMontage(const FName& SectionName);
 	void BoxTrace(TArray<FHitResult>& BoxHits);
+	virtual void Die() override;
+	virtual bool IsDead() override;
 
 	UFUNCTION(BlueprintCallable)
 	void AttachWeaponToBack();
@@ -95,6 +99,11 @@ protected:
 	UInputAction* DodgeAction;
 
 private:
+	bool IsAttacking();
+	bool IsUnoccupied();
+	void InitializeOverlay();
+	void SetHUDHealth();
+
 	/** Character Components*/
 	UPROPERTY(VisibleAnywhere)
 	USpringArmComponent* CameraBoom;
@@ -116,7 +125,11 @@ private:
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	EActionState ActionState = EActionState::EAS_Unoccupied;
 
+	UPROPERTY()
+	UHackAndSlashOverlay* Overlay;
+
 public:
 	FORCEINLINE void SetOverlappingItem(AItem* Item) { OverlappingItem = Item; }
 	FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }
+	FORCEINLINE EActionState GetActionState() const { return ActionState; }
 };
