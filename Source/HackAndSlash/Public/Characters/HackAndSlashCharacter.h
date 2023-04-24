@@ -6,6 +6,7 @@
 #include "BaseCharacter.h"
 #include "InputActionValue.h"
 #include "CharacterTypes.h"
+#include "Interfaces/PickupInterface.h"
 #include "HackAndSlashCharacter.generated.h"
 
 class UInputMappingContext;
@@ -15,17 +16,23 @@ class UCameraComponent;
 class AItem;
 class UAnimMontage;
 class UHackAndSlashOverlay;
+class ASoul;
+class ATreasure;
 
 UCLASS()
-class HACKANDSLASH_API AHackAndSlashCharacter : public ABaseCharacter
+class HACKANDSLASH_API AHackAndSlashCharacter : public ABaseCharacter, public IPickupInterface
 {
 	GENERATED_BODY()
 
 public:
 	AHackAndSlashCharacter();
+	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
+	virtual void SetOverlappingItem(AItem* Item) override;
+	virtual void AddSouls(ASoul* Soul) override;
+	virtual void AddGold(ATreasure* Treasure) override;
 	virtual void Jump() override;
 
 protected:
@@ -41,6 +48,7 @@ protected:
 	/** Combat */
 	void EquipWeapon(AWeapon* Weapon);
 	virtual void AttackEnd() override;
+	virtual void DodgeEnd() override;
 	virtual bool CanAttack() override;
 	bool CanDisarm();
 	void Disarm();
@@ -51,6 +59,8 @@ protected:
 	void PlayEquipMontage(const FName& SectionName);
 	void BoxTrace(TArray<FHitResult>& BoxHits);
 	virtual void Die() override;
+	bool HasEnoughStamina();
+	bool IsOccupied();
 	virtual bool IsDead() override;
 
 	UFUNCTION(BlueprintCallable)
@@ -129,7 +139,6 @@ private:
 	UHackAndSlashOverlay* Overlay;
 
 public:
-	FORCEINLINE void SetOverlappingItem(AItem* Item) { OverlappingItem = Item; }
 	FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }
 	FORCEINLINE EActionState GetActionState() const { return ActionState; }
 };

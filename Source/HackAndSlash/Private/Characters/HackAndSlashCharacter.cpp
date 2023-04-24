@@ -1,4 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Characters/HackAndSlashCharacter.h"
@@ -17,10 +18,12 @@
 #include "Enemy/Enemy.h"
 #include "HUD/HackAndSlashHUD.h"
 #include "HUD/HackAndSlashOverlay.h"
+#include "Items/Soul.h"
+#include "Items/Treasure.h"
 
 AHackAndSlashCharacter::AHackAndSlashCharacter()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -47,6 +50,15 @@ AHackAndSlashCharacter::AHackAndSlashCharacter()
 
 	BoxTraceEnd = CreateDefaultSubobject<USceneComponent>(TEXT("Box Trace End"));
 	BoxTraceEnd->SetupAttachment(GetRootComponent());
+}
+
+void AHackAndSlashCharacter::Tick(float DeltaTime)
+{
+	if (Attributes && Overlay)
+	{
+		Attributes->RegenStamina(DeltaTime);	
+		Overlay->SetStaminaBarPercent(Attributes->GetStaminaPercent());
+	}
 }
 
 void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -81,6 +93,29 @@ void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, A
 	if (IsAlive())
 	{
 		ActionState = EActionState::EAS_HitReaction;
+	}
+}
+
+void AHackAndSlashCharacter::SetOverlappingItem(AItem* Item)
+{
+	OverlappingItem = Item;
+}
+
+void AHackAndSlashCharacter::AddSouls(ASoul* Soul)
+{
+	if (Attributes && Overlay)
+	{
+		Attributes->AddSouls(Soul->GetSouls());
+		Overlay->SetSouls(Attributes->GetSouls());
+	}
+}
+
+void AHackAndSlashCharacter::AddGold(ATreasure* Treasure)
+{
+	if (Attributes && Overlay)
+	{
+		Attributes->AddGold(Treasure->GetGold());
+		Overlay->SetGold(Attributes->GetGold());
 	}
 }
 
@@ -185,9 +220,14 @@ void AHackAndSlashCharacter::Attack()
 
 void AHackAndSlashCharacter::Dodge()
 {
-	if (GEngine)
+	if (IsOccupied() || !HasEnoughStamina()) return;
+
+	PlayDodgeMontage();
+	ActionState = EActionState::EAS_Dodge;
+	if (Attributes && Overlay)
 	{
-		GEngine->AddOnScreenDebugMessage(1, 30.f, FColor::Blue, TEXT("Dodge"));
+		Attributes->UseStamina(Attributes->GetDodgeCost());
+		Overlay->SetStaminaBarPercent(Attributes->GetStaminaPercent());
 	}
 }
 
@@ -206,6 +246,12 @@ void AHackAndSlashCharacter::EquipWeapon(AWeapon* Weapon)
 void AHackAndSlashCharacter::AttackEnd()
 {
 	CombatTarget = nullptr;
+	ActionState = EActionState::EAS_Unoccupied;
+}
+
+void AHackAndSlashCharacter::DodgeEnd()
+{
+	Super::DodgeEnd();
 	ActionState = EActionState::EAS_Unoccupied;
 }
 
@@ -297,6 +343,16 @@ void AHackAndSlashCharacter::Die()
 
 	ActionState = EActionState::EAS_Dead;
 	DisableMeshCollision();
+}
+
+bool AHackAndSlashCharacter::HasEnoughStamina()
+{
+	return Attributes && Attributes->GetStamina() > Attributes->GetDodgeCost();
+}
+
+bool AHackAndSlashCharacter::IsOccupied()
+{
+	return ActionState != EActionState::EAS_Unoccupied;
 }
 
 bool AHackAndSlashCharacter::IsDead()
