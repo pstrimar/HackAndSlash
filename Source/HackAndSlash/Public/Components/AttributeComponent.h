@@ -49,6 +49,7 @@ private:
 
 public:
 	void ReceiveDamage(float Damage);
+	void AddHealth(float HealAmount);
 	void UseStamina(float StaminaCost);
 	float GetHealthPercent();
 	float GetStaminaPercent();

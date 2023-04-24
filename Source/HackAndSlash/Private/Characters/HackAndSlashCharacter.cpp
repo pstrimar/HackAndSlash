@@ -20,6 +20,7 @@
 #include "HUD/HackAndSlashOverlay.h"
 #include "Items/Soul.h"
 #include "Items/Treasure.h"
+#include "Items/Health.h"
 
 AHackAndSlashCharacter::AHackAndSlashCharacter()
 {
@@ -116,6 +117,15 @@ void AHackAndSlashCharacter::AddGold(ATreasure* Treasure)
 	{
 		Attributes->AddGold(Treasure->GetGold());
 		Overlay->SetGold(Attributes->GetGold());
+	}
+}
+
+void AHackAndSlashCharacter::AddHealth(AHealth* Health)
+{
+	if (Attributes && Overlay)
+	{
+		Attributes->AddHealth(Health->GetHealth());
+		Overlay->SetHealthBarPercent(Attributes->GetHealthPercent());
 	}
 }
 

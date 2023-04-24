@@ -18,6 +18,7 @@ class UAnimMontage;
 class UHackAndSlashOverlay;
 class ASoul;
 class ATreasure;
+class AHealth;
 
 UCLASS()
 class HACKANDSLASH_API AHackAndSlashCharacter : public ABaseCharacter, public IPickupInterface
@@ -33,6 +34,7 @@ public:
 	virtual void SetOverlappingItem(AItem* Item) override;
 	virtual void AddSouls(ASoul* Soul) override;
 	virtual void AddGold(ATreasure* Treasure) override;
+	virtual void AddHealth(AHealth* Health) override;
 	virtual void Jump() override;
 
 protected:
