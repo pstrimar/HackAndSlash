@@ -60,7 +60,7 @@ protected:
 	void Swap();
 	void PlayEquipMontage(const FName& SectionName);
 	void BoxTrace(TArray<FHitResult>& BoxHits);
-	virtual void Die() override;
+	virtual void Die_Implementation() override;
 	bool HasEnoughStamina();
 	bool IsOccupied();
 	virtual bool IsDead() override;

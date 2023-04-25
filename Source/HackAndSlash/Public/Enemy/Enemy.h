@@ -25,7 +25,7 @@ public:
 protected:	
 	virtual void BeginPlay() override;
 
-	virtual void Die() override;
+	virtual void Die_Implementation() override;
 	void SpawnSoul();
 
 	virtual void Attack() override;
@@ -35,7 +35,7 @@ protected:
 	virtual void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled) override;
 	virtual bool IsDead() override;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	EEnemyState EnemyState = EEnemyState::EES_Patrolling;
 
 private:

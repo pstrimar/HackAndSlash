@@ -349,9 +349,9 @@ void AHackAndSlashCharacter::BoxTrace(TArray<FHitResult>& BoxHits)
 	UKismetSystemLibrary::BoxTraceMulti(this, Start, End, BoxTraceExtend, BoxTraceStart->GetComponentRotation(), ETraceTypeQuery::TraceTypeQuery1, false, ActorsToIgnore, EDrawDebugTrace::None, BoxHits, true);
 }
 
-void AHackAndSlashCharacter::Die()
+void AHackAndSlashCharacter::Die_Implementation()
 {
-	Super::Die();
+	Super::Die_Implementation();
 
 	ActionState = EActionState::EAS_Dead;
 	DisableMeshCollision();
