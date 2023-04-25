@@ -234,6 +234,7 @@ void AHackAndSlashCharacter::Dodge()
 
 	PlayDodgeMontage();
 	ActionState = EActionState::EAS_Dodge;
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	if (Attributes && Overlay)
 	{
 		Attributes->UseStamina(Attributes->GetDodgeCost());
@@ -263,6 +264,7 @@ void AHackAndSlashCharacter::DodgeEnd()
 {
 	Super::DodgeEnd();
 	ActionState = EActionState::EAS_Unoccupied;
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 }
 
 bool AHackAndSlashCharacter::CanAttack()

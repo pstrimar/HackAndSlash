@@ -87,6 +87,10 @@ void AEnemy::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
 	ClearAttackTimer();
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 	StopAttackMontage();
+	if (IsInsideAttackRadius() && !IsDead())
+	{
+		StartAttackTimer();
+	}
 }
 
 void AEnemy::BeginPlay()
@@ -309,7 +313,7 @@ void AEnemy::MoveToTarget(AActor* Target)
 
 	FAIMoveRequest MoveRequest;
 	MoveRequest.SetGoalActor(Target);
-	MoveRequest.SetAcceptanceRadius(50.f);
+	MoveRequest.SetAcceptanceRadius(AcceptanceRadius);
 	EnemyController->MoveTo(MoveRequest);
 }
 
@@ -335,14 +339,23 @@ AActor* AEnemy::ChoosePatrolTarget()
 void AEnemy::SpawnDefaultWeapons()
 {
 	UWorld* World = GetWorld();
-	if (World)
+	if (World && WeaponClass)
 	{
-		AWeapon* DefaultWeaponR = World->SpawnActor<AWeapon>(WeaponClass);
-		AWeapon* DefaultWeaponL = World->SpawnActor<AWeapon>(WeaponClass);
-		DefaultWeaponR->Equip(GetMesh(), FName("RightHandSocket"), this, this);
-		DefaultWeaponL->Equip(GetMesh(), FName("LeftHandSocket"), this, this);
-		EquippedWeapon = DefaultWeaponR;
-		EquippedWeaponSecondary = DefaultWeaponL;
+		if (TwoWeapons)
+		{
+			AWeapon* DefaultWeaponR = World->SpawnActor<AWeapon>(WeaponClass);
+			AWeapon* DefaultWeaponL = World->SpawnActor<AWeapon>(WeaponClass);
+			DefaultWeaponR->Equip(GetMesh(), FName("WeaponSocketR"), this, this);
+			DefaultWeaponL->Equip(GetMesh(), FName("WeaponSocketL"), this, this);
+			EquippedWeapon = DefaultWeaponR;
+			EquippedWeaponSecondary = DefaultWeaponL;
+		}
+		else
+		{
+			AWeapon* DefaultWeapon = World->SpawnActor<AWeapon>(WeaponClass);
+			DefaultWeapon->Equip(GetMesh(), FName("WeaponSocket"), this, this);
+			EquippedWeapon = DefaultWeapon;
+		}
 	}
 }
 
