@@ -78,7 +78,13 @@ protected:
 	void FinishEquipping();
 
 	UFUNCTION(BlueprintCallable)
-	void HitReactEnd();
+	void HitReactEnd();	
+
+	UFUNCTION(BlueprintCallable)
+	void ComboAttackSave();
+
+	UFUNCTION(BlueprintCallable)
+	void ResetCombo();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	USceneComponent* BoxTraceStart;
@@ -139,6 +145,9 @@ private:
 
 	UPROPERTY()
 	UHackAndSlashOverlay* Overlay;
+
+	bool SaveAttack;
+	int32 AttackCount;
 
 public:
 	FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }

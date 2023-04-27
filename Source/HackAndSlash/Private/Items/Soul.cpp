@@ -28,7 +28,7 @@ void ASoul::BeginPlay()
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Add(GetOwner());
 	FHitResult HitResult;
-	UKismetSystemLibrary::LineTraceSingleForObjects(this, Start, End, ObjectTypes, false, ActorsToIgnore, EDrawDebugTrace::ForDuration, HitResult, true);
+	UKismetSystemLibrary::LineTraceSingleForObjects(this, Start, End, ObjectTypes, false, ActorsToIgnore, EDrawDebugTrace::None, HitResult, true);
 	DesiredZ = HitResult.ImpactPoint.Z + GroundOffset;
 }
 

@@ -28,6 +28,19 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = Movement)
 	float GroundSpeed;
 
+	FRotator DeltaRotation;
+	FRotator AimRotation;
+	FRotator CharacterRotation;
+
+	UPROPERTY(BlueprintReadOnly, Category = Movement)
+	float AO_Yaw;
+
+	UPROPERTY(BlueprintReadOnly, Category = Movement)
+	float AO_Pitch;
+
+	UPROPERTY(BlueprintReadOnly, Category = Movement)
+	bool bUseAimOffsets;
+
 	UPROPERTY(BlueprintReadOnly, Category = Movement)
 	bool IsFalling;
 

@@ -28,5 +28,14 @@ void UHackAndSlashAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		CharacterState = HackAndSlashCharacter->GetCharacterState();
 		ActionState = HackAndSlashCharacter->GetActionState();
 		DeathPose = HackAndSlashCharacter->GetDeathPose();
+
+		AimRotation = HackAndSlashCharacter->GetBaseAimRotation();
+		CharacterRotation = HackAndSlashCharacter->GetActorRotation();
+		DeltaRotation = UKismetMathLibrary::NormalizedDeltaRotator(AimRotation, CharacterRotation);
+
+		AO_Pitch = DeltaRotation.Pitch;
+		AO_Yaw = DeltaRotation.Yaw;
+
+		bUseAimOffsets = HackAndSlashCharacter->GetActionState() == EActionState::EAS_Unoccupied;
 	}
 }

@@ -57,6 +57,18 @@ int32 ABaseCharacter::PlayAttackMontage()
 	return -1;
 }
 
+void ABaseCharacter::PlayAttackMontage(int32 ComboCount)
+{
+	if (EquippedWeapon->IsTwoHanded && TwoHandedAttackMontageSections.Num() - 1 >= ComboCount)
+	{
+		PlayMontageSection(TwoHandedAttackMontage, TwoHandedAttackMontageSections[ComboCount]);
+	}
+	else if (!EquippedWeapon->IsTwoHanded && OneHandedAttackMontageSections.Num() - 1 >= ComboCount)
+	{
+		PlayMontageSection(OneHandedAttackMontage, OneHandedAttackMontageSections[ComboCount]);
+	}
+}
+
 int32 ABaseCharacter::PlayDeathMontage()
 {
 	const int32 Selection = PlayRandomMontageSection(DeathMontage, DeathMontageSections);

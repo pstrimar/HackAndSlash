@@ -41,6 +41,7 @@ protected:
 
 	/** Montage */
 	virtual int32 PlayAttackMontage();
+	virtual void PlayAttackMontage(int32 ComboCount);
 	virtual int32 PlayDeathMontage();
 	virtual void PlayDodgeMontage();
 	void PlayHitReactMontage(const FName& SectionName);

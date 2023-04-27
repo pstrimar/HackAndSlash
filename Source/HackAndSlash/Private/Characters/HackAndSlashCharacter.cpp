@@ -72,7 +72,7 @@ void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Look);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Jump);
 		EnhancedInputComponent->BindAction(EKeyPressedAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::EKeyPressed);
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Attack);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::Attack);
 		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Dodge);
 	}
 
@@ -90,6 +90,7 @@ void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, A
 	Super::GetHit_Implementation(ImpactPoint, Hitter);
 
 	CombatTarget = nullptr;
+	SaveAttack = false;
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 	if (IsAlive())
 	{
@@ -205,7 +206,11 @@ void AHackAndSlashCharacter::EKeyPressed()
 void AHackAndSlashCharacter::Attack()
 {
 	Super::Attack();
-	if (CanAttack())
+	if (IsAttacking())
+	{
+		SaveAttack = true;
+	}
+	else if (CanAttack())
 	{
 		CombatTarget = nullptr;
 		TArray<FHitResult> BoxHits;
@@ -223,7 +228,7 @@ void AHackAndSlashCharacter::Attack()
 			}
 		}		
 
-		PlayAttackMontage();
+		PlayAttackMontage();	
 		ActionState = EActionState::EAS_Attacking;
 	}
 }
@@ -408,6 +413,38 @@ void AHackAndSlashCharacter::FinishEquipping()
 void AHackAndSlashCharacter::HitReactEnd()
 {
 	ActionState = EActionState::EAS_Unoccupied;
+}
+
+void AHackAndSlashCharacter::ComboAttackSave()
+{
+	if (SaveAttack)
+	{
+		SaveAttack = false;
+
+		switch (AttackCount)
+		{
+		case 0:
+			PlayAttackMontage(AttackCount);
+			AttackCount++;
+			break;
+		case 1:
+			PlayAttackMontage(AttackCount);
+			AttackCount++;
+			break;
+		case 2:
+			PlayAttackMontage(AttackCount);
+			AttackCount = 0;
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+void AHackAndSlashCharacter::ResetCombo()
+{
+	AttackCount = 0;
+	SaveAttack = false;
 }
 
 bool AHackAndSlashCharacter::IsAttacking()
