@@ -88,7 +88,6 @@ float AHackAndSlashCharacter::TakeDamage(float DamageAmount, struct FDamageEvent
 void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
 {
 	Super::GetHit_Implementation(ImpactPoint, Hitter);
-
 	CombatTarget = nullptr;
 	SaveAttack = false;
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -154,7 +153,7 @@ void AHackAndSlashCharacter::BeginPlay()
 
 void AHackAndSlashCharacter::Move(const FInputActionValue& Value)
 {
-	//if (ActionState != EActionState::EAS_Unoccupied) return;
+	if (ActionState != EActionState::EAS_Unoccupied) return;
 
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 	if (GetController() && MovementVector != FVector2D::ZeroVector)
@@ -293,7 +292,6 @@ void AHackAndSlashCharacter::Disarm()
 
 	PlayEquipMontage(FName("Unequip"));
 	CharacterState = ECharacterState::ECS_Unequipped;
-	ActionState = EActionState::EAS_EquippingWeapon;
 }
 
 bool AHackAndSlashCharacter::CanArm()
@@ -311,7 +309,6 @@ void AHackAndSlashCharacter::Arm()
 
 	PlayEquipMontage(FName("Equip"));
 	CharacterState = EquippedWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
-	ActionState = EActionState::EAS_EquippingWeapon;
 }
 
 bool AHackAndSlashCharacter::CanSwap()
@@ -330,7 +327,6 @@ void AHackAndSlashCharacter::Swap()
 
 	PlayEquipMontage(FName("Swap"));
 	CharacterState = EquippedWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
-	ActionState = EActionState::EAS_EquippingWeapon;
 }
 
 void AHackAndSlashCharacter::PlayEquipMontage(const FName& SectionName)
@@ -403,11 +399,6 @@ void AHackAndSlashCharacter::SwapAttachedWeapons()
 	{
 		StoredWeapon->AttachMeshToSocket(GetMesh(), FName("SpineSocket"));
 	}
-}
-
-void AHackAndSlashCharacter::FinishEquipping()
-{
-	ActionState = EActionState::EAS_Unoccupied;
 }
 
 void AHackAndSlashCharacter::HitReactEnd()

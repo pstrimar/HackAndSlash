@@ -28,6 +28,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = Movement)
 	float GroundSpeed;
 
+	UPROPERTY(BlueprintReadOnly, Category = Movement)
+	bool IsAccelerating;
+
 	FRotator DeltaRotation;
 	FRotator DeltaLean;
 	FRotator AimRotation;

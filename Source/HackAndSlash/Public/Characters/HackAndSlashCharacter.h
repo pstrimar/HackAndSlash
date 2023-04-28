@@ -75,9 +75,6 @@ protected:
 	void SwapAttachedWeapons();
 
 	UFUNCTION(BlueprintCallable)
-	void FinishEquipping();
-
-	UFUNCTION(BlueprintCallable)
 	void HitReactEnd();	
 
 	UFUNCTION(BlueprintCallable)

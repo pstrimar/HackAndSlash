@@ -24,6 +24,7 @@ void UHackAndSlashAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	if (HackAndSlashMovement)
 	{		
 		GroundSpeed = UKismetMathLibrary::VSizeXY(HackAndSlashMovement->Velocity);
+		IsAccelerating = HackAndSlashMovement->GetCurrentAcceleration().Length() > 0.f;
 		IsFalling = HackAndSlashMovement->IsFalling();
 		CharacterState = HackAndSlashCharacter->GetCharacterState();
 		ActionState = HackAndSlashCharacter->GetActionState();
