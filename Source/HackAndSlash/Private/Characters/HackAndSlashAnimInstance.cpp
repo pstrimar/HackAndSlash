@@ -29,9 +29,17 @@ void UHackAndSlashAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		ActionState = HackAndSlashCharacter->GetActionState();
 		DeathPose = HackAndSlashCharacter->GetDeathPose();
 
+		if (GroundSpeed > 0.f)
+		{
+			DeltaLean = UKismetMathLibrary::NormalizedDeltaRotator(CharacterRotationLastTick, HackAndSlashCharacter->GetActorRotation());
+			const float Target = DeltaLean.Yaw / DeltaTime / LeanIntensity;
+			YawDelta = FMath::FInterpTo(YawDelta, Target, DeltaTime, 6.f);
+			CharacterRotationLastTick = HackAndSlashCharacter->GetActorRotation();
+		}
+
 		AimRotation = HackAndSlashCharacter->GetBaseAimRotation();
-		CharacterRotation = HackAndSlashCharacter->GetActorRotation();
-		DeltaRotation = UKismetMathLibrary::NormalizedDeltaRotator(AimRotation, CharacterRotation);
+		CharacterRotationLastTick = HackAndSlashCharacter->GetActorRotation();
+		DeltaRotation = UKismetMathLibrary::NormalizedDeltaRotator(AimRotation, CharacterRotationLastTick);
 
 		AO_Pitch = DeltaRotation.Pitch;
 		AO_Yaw = DeltaRotation.Yaw;

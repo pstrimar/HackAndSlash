@@ -29,11 +29,15 @@ public:
 	float GroundSpeed;
 
 	FRotator DeltaRotation;
+	FRotator DeltaLean;
 	FRotator AimRotation;
-	FRotator CharacterRotation;
+	FRotator CharacterRotationLastTick;
 
 	UPROPERTY(BlueprintReadOnly, Category = Movement)
 	float AO_Yaw;
+
+	UPROPERTY(BlueprintReadOnly, Category = Movement)
+	float YawDelta;
 
 	UPROPERTY(BlueprintReadOnly, Category = Movement)
 	float AO_Pitch;
@@ -52,4 +56,7 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 	TEnumAsByte<EDeathPose> DeathPose;
+
+private:
+	float LeanIntensity = 10.f;
 };

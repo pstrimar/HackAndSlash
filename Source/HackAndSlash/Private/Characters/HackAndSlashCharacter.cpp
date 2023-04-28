@@ -154,7 +154,7 @@ void AHackAndSlashCharacter::BeginPlay()
 
 void AHackAndSlashCharacter::Move(const FInputActionValue& Value)
 {
-	if (ActionState != EActionState::EAS_Unoccupied) return;
+	//if (ActionState != EActionState::EAS_Unoccupied) return;
 
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 	if (GetController() && MovementVector != FVector2D::ZeroVector)
