@@ -15,7 +15,6 @@ class HACKANDSLASH_API UAttributeComponent : public UActorComponent
 public:	
 	UAttributeComponent();
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	void RegenStamina(float DeltaTime);
 
 protected:
 	virtual void BeginPlay() override;
@@ -45,12 +44,17 @@ private:
 	int32 DodgeCost = 14.f;
 
 	UPROPERTY(EditAnywhere, Category = "Actor Attributes")
+	int32 SprintCost = 16.f;
+
+	UPROPERTY(EditAnywhere, Category = "Actor Attributes")
 	float StaminaRegenRate = 8.f;
 
 public:
 	void ReceiveDamage(float Damage);
 	void AddHealth(float HealAmount);
 	void UseStamina(float StaminaCost);
+	void UseStaminaOverTime(float StaminaCost, float DeltaTime);
+	void RegenStamina(float DeltaTime);
 	float GetHealthPercent();
 	float GetStaminaPercent();
 	bool IsAlive();
@@ -59,5 +63,6 @@ public:
 	FORCEINLINE int32 GetGold() const { return Gold; }
 	FORCEINLINE int32 GetSouls() const { return Souls; }
 	FORCEINLINE float GetDodgeCost() const { return DodgeCost; }
+	FORCEINLINE float GetSprintCost() const { return SprintCost; }
 	FORCEINLINE float GetStamina() const { return Stamina; }
 };

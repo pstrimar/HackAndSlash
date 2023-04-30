@@ -45,6 +45,8 @@ AHackAndSlashCharacter::AHackAndSlashCharacter()
 
 	ViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ViewCamera"));
 	ViewCamera->SetupAttachment(CameraBoom);
+	ViewCamera->FieldOfView = DefaultFOV;
+	TargetFOV = DefaultFOV;
 
 	BoxTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("Box Trace Start"));
 	BoxTraceStart->SetupAttachment(GetRootComponent());
@@ -57,8 +59,23 @@ void AHackAndSlashCharacter::Tick(float DeltaTime)
 {
 	if (Attributes && Overlay)
 	{
-		Attributes->RegenStamina(DeltaTime);	
+		if (IsSprinting())
+		{
+			Attributes->UseStaminaOverTime(Attributes->GetSprintCost(), DeltaTime);
+			if (Attributes->GetStamina() <= 0.f)
+			{
+				SprintEnd();
+			}
+		}
+		else
+		{
+			Attributes->RegenStamina(DeltaTime);	
+		}
 		Overlay->SetStaminaBarPercent(Attributes->GetStaminaPercent());
+	}
+	if (ViewCamera->FieldOfView != TargetFOV)
+	{
+		ViewCamera->FieldOfView = FMath::FInterpTo(ViewCamera->FieldOfView, TargetFOV, DeltaTime, 6.f);
 	}
 }
 
@@ -74,6 +91,8 @@ void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 		EnhancedInputComponent->BindAction(EKeyPressedAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::EKeyPressed);
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::Attack);
 		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Dodge);
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::SprintStart);
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AHackAndSlashCharacter::SprintEnd);
 	}
 
 }
@@ -90,6 +109,7 @@ void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, A
 	Super::GetHit_Implementation(ImpactPoint, Hitter);
 	CombatTarget = nullptr;
 	SaveAttack = false;
+	SprintEnd();
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 	if (IsAlive())
 	{
@@ -244,6 +264,18 @@ void AHackAndSlashCharacter::Dodge()
 		Attributes->UseStamina(Attributes->GetDodgeCost());
 		Overlay->SetStaminaBarPercent(Attributes->GetStaminaPercent());
 	}
+}
+
+void AHackAndSlashCharacter::SprintStart()
+{
+	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	TargetFOV = SprintFOV;
+}
+
+void AHackAndSlashCharacter::SprintEnd()
+{
+	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
+	TargetFOV = DefaultFOV;
 }
 
 void AHackAndSlashCharacter::EquipWeapon(AWeapon* Weapon)
@@ -446,6 +478,11 @@ bool AHackAndSlashCharacter::IsAttacking()
 bool AHackAndSlashCharacter::IsUnoccupied()
 {
 	return ActionState == EActionState::EAS_Unoccupied;
+}
+
+bool AHackAndSlashCharacter::IsSprinting()
+{
+	return GetCharacterMovement()->MaxWalkSpeed > DefaultSpeed && GetCharacterMovement()->IsMovingOnGround();
 }
 
 void AHackAndSlashCharacter::InitializeOverlay()

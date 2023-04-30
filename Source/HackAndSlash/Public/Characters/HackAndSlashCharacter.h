@@ -46,6 +46,8 @@ protected:
 	void EKeyPressed();
 	virtual void Attack() override;
 	void Dodge();
+	void SprintStart();
+	void SprintEnd();
 
 	/** Combat */
 	void EquipWeapon(AWeapon* Weapon);
@@ -113,9 +115,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputAction* DodgeAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	UInputAction* SprintAction;
+
 private:
 	bool IsAttacking();
 	bool IsUnoccupied();
+	bool IsSprinting();
 	void InitializeOverlay();
 	void SetHUDHealth();
 
@@ -145,6 +151,18 @@ private:
 
 	bool SaveAttack;
 	int32 AttackCount;
+	float DefaultSpeed = 600.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = Movement)
+	float SprintSpeed = 1000.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = Movement)
+	float DefaultFOV = 90.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = Movement)
+	float SprintFOV = 100.f;
+
+	float TargetFOV;
 
 public:
 	FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }
