@@ -29,6 +29,13 @@ void UHackAndSlashAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		CharacterState = HackAndSlashCharacter->GetCharacterState();
 		ActionState = HackAndSlashCharacter->GetActionState();
 		DeathPose = HackAndSlashCharacter->GetDeathPose();
+		TargetLocked = HackAndSlashCharacter->GetTargetLocked();
+
+		if (TargetLocked)
+		{
+			MovementRotation = CalculateDirection(HackAndSlashMovement->Velocity, HackAndSlashCharacter->GetActorRotation());
+			UE_LOG(LogTemp, Warning, TEXT("Movement Rotation: %f"), MovementRotation);
+		}
 
 		if (GroundSpeed > 0.f)
 		{

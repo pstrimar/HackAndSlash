@@ -8,6 +8,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Perception/PawnSensingComponent.h"
 #include "Components/AttributeComponent.h"
+#include "Components/WidgetComponent.h"
 #include "HUD/HealthBarComponent.h"
 #include "Items/Weapons/Weapon.h"
 #include "Items/Soul.h"
@@ -23,6 +24,9 @@ AEnemy::AEnemy()
 
 	HealthBarWidget = CreateDefaultSubobject<UHealthBarComponent>(TEXT("HealthBar"));
 	HealthBarWidget->SetupAttachment(GetRootComponent());
+
+	TargetLockWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("TargetLockWidget"));
+	TargetLockWidget->SetupAttachment(GetRootComponent());
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	bUseControllerRotationPitch = false;
@@ -111,6 +115,7 @@ void AEnemy::Die_Implementation()
 	EnemyState = EEnemyState::EES_Dead;
 	ClearAttackTimer();
 	HideHealthBar();
+	HideTargetLock();
 	DisableCapsule();
 	SetLifeSpan(DeathLifeSpan);
 	GetCharacterMovement()->bOrientRotationToMovement = false;
@@ -227,6 +232,22 @@ void AEnemy::ShowHealthBar()
 	if (HealthBarWidget)
 	{
 		HealthBarWidget->SetVisibility(true);
+	}
+}
+
+void AEnemy::HideTargetLock()
+{
+	if (TargetLockWidget)
+	{
+		TargetLockWidget->SetVisibility(false);
+	}
+}
+
+void AEnemy::ShowTargetLock()
+{
+	if (TargetLockWidget)
+	{
+		TargetLockWidget->SetVisibility(true);
 	}
 }
 

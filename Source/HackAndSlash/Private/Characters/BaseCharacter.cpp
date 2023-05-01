@@ -80,9 +80,9 @@ int32 ABaseCharacter::PlayDeathMontage()
 	return Selection;
 }
 
-void ABaseCharacter::PlayDodgeMontage()
+void ABaseCharacter::PlayDodgeMontage(const FName& SectionName)
 {
-	PlayMontageSection(DodgeMontage, FName("Dodge"));
+	PlayMontageSection(DodgeMontage, SectionName);
 }
 
 void ABaseCharacter::DisableCapsule()

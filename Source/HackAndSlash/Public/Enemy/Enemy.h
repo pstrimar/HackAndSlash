@@ -5,13 +5,15 @@
 #include "CoreMinimal.h"
 #include "Characters/BaseCharacter.h"
 #include "Characters/CharacterTypes.h"
+#include "Interfaces/TargetLockInterface.h"
 #include "Enemy.generated.h"
 
 class UHealthBarComponent;
 class UPawnSensingComponent;
+class UWidgetComponent;
 
 UCLASS()
-class HACKANDSLASH_API AEnemy : public ABaseCharacter
+class HACKANDSLASH_API AEnemy : public ABaseCharacter, public ITargetLockInterface
 {
 	GENERATED_BODY()
 
@@ -21,6 +23,8 @@ public:
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	virtual void Destroyed() override;
 	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
+	virtual void ShowTargetLock() override;
+	virtual void HideTargetLock() override;
 
 protected:	
 	virtual void BeginPlay() override;
@@ -68,6 +72,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	UHealthBarComponent* HealthBarWidget;
+
+	UPROPERTY(VisibleAnywhere)
+	UWidgetComponent* TargetLockWidget;
 
 	UPROPERTY(VisibleAnywhere)
 	UPawnSensingComponent* PawnSensing;

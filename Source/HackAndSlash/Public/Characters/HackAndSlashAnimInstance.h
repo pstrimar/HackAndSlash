@@ -49,7 +49,13 @@ public:
 	bool bUseAimOffsets;
 
 	UPROPERTY(BlueprintReadOnly, Category = Movement)
+	float MovementRotation;
+
+	UPROPERTY(BlueprintReadOnly, Category = Movement)
 	bool IsFalling;
+
+	UPROPERTY(BlueprintReadOnly, Category = Movement)
+	bool TargetLocked;
 
 	UPROPERTY(BlueprintReadOnly, Category = Movement)
 	ECharacterState CharacterState;

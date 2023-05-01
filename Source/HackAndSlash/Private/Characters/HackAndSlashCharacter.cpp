@@ -15,12 +15,14 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Enemy/Enemy.h"
 #include "HUD/HackAndSlashHUD.h"
 #include "HUD/HackAndSlashOverlay.h"
 #include "Items/Soul.h"
 #include "Items/Treasure.h"
 #include "Items/Health.h"
+#include "Interfaces/TargetLockInterface.h"
 
 AHackAndSlashCharacter::AHackAndSlashCharacter()
 {
@@ -47,16 +49,11 @@ AHackAndSlashCharacter::AHackAndSlashCharacter()
 	ViewCamera->SetupAttachment(CameraBoom);
 	ViewCamera->FieldOfView = DefaultFOV;
 	TargetFOV = DefaultFOV;
-
-	BoxTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("Box Trace Start"));
-	BoxTraceStart->SetupAttachment(GetRootComponent());
-
-	BoxTraceEnd = CreateDefaultSubobject<USceneComponent>(TEXT("Box Trace End"));
-	BoxTraceEnd->SetupAttachment(GetRootComponent());
 }
 
 void AHackAndSlashCharacter::Tick(float DeltaTime)
 {
+	Super::Tick(DeltaTime);
 	if (Attributes && Overlay)
 	{
 		if (IsSprinting())
@@ -77,6 +74,20 @@ void AHackAndSlashCharacter::Tick(float DeltaTime)
 	{
 		ViewCamera->FieldOfView = FMath::FInterpTo(ViewCamera->FieldOfView, TargetFOV, DeltaTime, 6.f);
 	}
+	if (TargetLocked && CombatTarget)
+	{
+		FollowTarget(DeltaTime);
+	}
+}
+
+void AHackAndSlashCharacter::FollowTarget(float DeltaTime)
+{
+	const FVector Target = CombatTarget->GetActorLocation();
+	const FRotator CurrentRot = GetController()->GetControlRotation();
+	const FRotator TargetRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), FVector(Target.X, Target.Y, Target.Z));
+	const FRotator InterpRot = FMath::RInterpTo(CurrentRot, TargetRot, DeltaTime, 5.f);
+	const FRotator NewRot = UKismetMathLibrary::MakeRotator(CurrentRot.Roll, CurrentRot.Pitch, InterpRot.Yaw);
+	GetController()->SetControlRotation(NewRot);
 }
 
 void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -93,8 +104,8 @@ void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Dodge);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::SprintStart);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AHackAndSlashCharacter::SprintEnd);
+		EnhancedInputComponent->BindAction(TargetLockAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::TargetLock);
 	}
-
 }
 
 float AHackAndSlashCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
@@ -107,7 +118,10 @@ float AHackAndSlashCharacter::TakeDamage(float DamageAmount, struct FDamageEvent
 void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
 {
 	Super::GetHit_Implementation(ImpactPoint, Hitter);
-	CombatTarget = nullptr;
+	if (!TargetLocked)
+	{
+		CombatTarget = nullptr;
+	}
 	SaveAttack = false;
 	SprintEnd();
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -173,9 +187,9 @@ void AHackAndSlashCharacter::BeginPlay()
 
 void AHackAndSlashCharacter::Move(const FInputActionValue& Value)
 {
+	MovementVector = Value.Get<FVector2D>();
 	if (ActionState != EActionState::EAS_Unoccupied) return;
 
-	const FVector2D MovementVector = Value.Get<FVector2D>();
 	if (GetController() && MovementVector != FVector2D::ZeroVector)
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -193,7 +207,10 @@ void AHackAndSlashCharacter::Look(const FInputActionValue& Value)
 	const FVector2D LookAxisValue = Value.Get<FVector2D>();
 	if (GetController() && LookAxisValue != FVector2D::ZeroVector)
 	{
-		AddControllerYawInput(LookAxisValue.X);
+		if (!TargetLocked)
+		{
+			AddControllerYawInput(LookAxisValue.X);
+		}
 		AddControllerPitchInput(LookAxisValue.Y);
 	}
 }
@@ -231,21 +248,7 @@ void AHackAndSlashCharacter::Attack()
 	}
 	else if (CanAttack())
 	{
-		CombatTarget = nullptr;
-		TArray<FHitResult> BoxHits;
-		BoxTrace(BoxHits);
-
-		for (auto Hit : BoxHits)
-		{
-			if (Hit.GetActor())
-			{
-				if (Hit.GetActor()->ActorHasTag(FName("Enemy")))
-				{
-					CombatTarget = Hit.GetActor();
-					break;
-				}
-			}
-		}		
+		TraceForCombatTarget(TargetLocked);
 
 		PlayAttackMontage();	
 		ActionState = EActionState::EAS_Attacking;
@@ -256,7 +259,23 @@ void AHackAndSlashCharacter::Dodge()
 {
 	if (IsOccupied() || !HasEnoughStamina()) return;
 
-	PlayDodgeMontage();
+	FName SectionName = FName("DodgeForward");
+	if (TargetLocked && MovementVector != FVector2D::ZeroVector)
+	{
+		if (MovementVector.X > 0.f)
+		{
+			SectionName = FName("DodgeRight");
+		}
+		else if (MovementVector.X < 0.f)
+		{
+			SectionName = FName("DodgeLeft");
+		}
+		else if (MovementVector.Y < 0.f)
+		{
+			SectionName = FName("DodgeBack");
+		}
+	}	
+	PlayDodgeMontage(SectionName);
 	ActionState = EActionState::EAS_Dodge;
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	if (Attributes && Overlay)
@@ -269,6 +288,16 @@ void AHackAndSlashCharacter::Dodge()
 void AHackAndSlashCharacter::SprintStart()
 {
 	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	if (TargetLocked && CombatTarget)
+	{
+		SetMovementToDefault();
+		if (ITargetLockInterface* TargetLockInterface = Cast<ITargetLockInterface>(CombatTarget))
+		{
+			TargetLockInterface->HideTargetLock();
+		}
+		TargetLocked = false;
+		CombatTarget = nullptr;
+	}
 	TargetFOV = SprintFOV;
 }
 
@@ -276,6 +305,36 @@ void AHackAndSlashCharacter::SprintEnd()
 {
 	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
 	TargetFOV = DefaultFOV;
+}
+
+void AHackAndSlashCharacter::TargetLock()
+{
+	TraceForCombatTarget(true);
+
+	if (CombatTarget)
+	{
+		SetMovementToStrafing();
+		TargetLocked = true;
+	}
+	else
+	{
+		SetMovementToDefault();
+		TargetLocked = false;
+	}
+}
+
+void AHackAndSlashCharacter::SetMovementToStrafing()
+{
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bUseSeparateBrakingFriction = false;
+	bUseControllerRotationYaw = true;
+}
+
+void AHackAndSlashCharacter::SetMovementToDefault()
+{
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bUseSeparateBrakingFriction = true;
+	bUseControllerRotationYaw = false;
 }
 
 void AHackAndSlashCharacter::EquipWeapon(AWeapon* Weapon)
@@ -292,7 +351,10 @@ void AHackAndSlashCharacter::EquipWeapon(AWeapon* Weapon)
 
 void AHackAndSlashCharacter::AttackEnd()
 {
-	CombatTarget = nullptr;
+	if (!TargetLocked)
+	{
+		CombatTarget = nullptr;
+	}
 	ActionState = EActionState::EAS_Unoccupied;
 }
 
@@ -373,13 +435,43 @@ void AHackAndSlashCharacter::PlayEquipMontage(const FName& SectionName)
 
 void AHackAndSlashCharacter::BoxTrace(TArray<FHitResult>& BoxHits)
 {
-	const FVector Start = BoxTraceStart->GetComponentLocation();
-	const FVector End = BoxTraceEnd->GetComponentLocation();
+	const FVector Start = GetActorLocation() + FVector(0.f, 0.f, BoxTraceExtend.Z);
+	const FVector End = Start + ViewCamera->GetForwardVector() * 1000.f;
 
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Add(this);
 
-	UKismetSystemLibrary::BoxTraceMulti(this, Start, End, BoxTraceExtend, BoxTraceStart->GetComponentRotation(), ETraceTypeQuery::TraceTypeQuery1, false, ActorsToIgnore, EDrawDebugTrace::None, BoxHits, true);
+	UKismetSystemLibrary::BoxTraceMulti(this, Start, End, BoxTraceExtend, GetActorRotation(), ETraceTypeQuery::TraceTypeQuery1, false, ActorsToIgnore, EDrawDebugTrace::None, BoxHits, true);
+}
+
+void AHackAndSlashCharacter::TraceForCombatTarget(bool ShouldTargetLock)
+{
+	TArray<FHitResult> BoxHits;
+	BoxTrace(BoxHits);
+
+	for (auto Hit : BoxHits)
+	{
+		if (Hit.GetActor() && Hit.GetActor()->ActorHasTag(FName("Enemy")) && Hit.GetActor() != CombatTarget)
+		{
+			CombatTarget = Hit.GetActor();
+			if (ShouldTargetLock)
+			{
+				if (ITargetLockInterface* TargetLockInterface = Cast<ITargetLockInterface>(CombatTarget))
+				{
+					TargetLockInterface->ShowTargetLock();
+				}
+			}
+			return;
+		}
+	}
+	if (CombatTarget)
+	{
+		if (ITargetLockInterface* TargetLockInterface = Cast<ITargetLockInterface>(CombatTarget))
+		{
+			TargetLockInterface->HideTargetLock();
+		}
+		CombatTarget = nullptr;
+	}	
 }
 
 void AHackAndSlashCharacter::Die_Implementation()

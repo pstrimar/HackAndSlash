@@ -48,6 +48,9 @@ protected:
 	void Dodge();
 	void SprintStart();
 	void SprintEnd();
+	void TargetLock();
+	void SetMovementToStrafing();
+	void SetMovementToDefault();
 
 	/** Combat */
 	void EquipWeapon(AWeapon* Weapon);
@@ -62,10 +65,12 @@ protected:
 	void Swap();
 	void PlayEquipMontage(const FName& SectionName);
 	void BoxTrace(TArray<FHitResult>& BoxHits);
+	void TraceForCombatTarget(bool ShouldTargetLock);
 	virtual void Die_Implementation() override;
 	bool HasEnoughStamina();
 	bool IsOccupied();
 	virtual bool IsDead() override;
+	void FollowTarget(float DeltaTime);
 
 	UFUNCTION(BlueprintCallable)
 	void AttachWeaponToBack();
@@ -84,12 +89,6 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void ResetCombo();
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	USceneComponent* BoxTraceStart;
-
-	UPROPERTY(VisibleAnywhere, Category = "Combat")
-	USceneComponent* BoxTraceEnd;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	FVector BoxTraceExtend = FVector(100.f);
@@ -117,6 +116,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputAction* SprintAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	UInputAction* TargetLockAction;
 
 private:
 	bool IsAttacking();
@@ -164,7 +166,12 @@ private:
 
 	float TargetFOV;
 
+	bool TargetLocked;
+
+	FVector2D MovementVector;
+
 public:
 	FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }
 	FORCEINLINE EActionState GetActionState() const { return ActionState; }
+	FORCEINLINE bool GetTargetLocked() const { return TargetLocked; }
 };
