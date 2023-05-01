@@ -112,6 +112,7 @@ void AEnemy::BeginPlay()
 void AEnemy::Die_Implementation()
 {	
 	Super::Die_Implementation();
+	OnTargetDeath.Broadcast();
 	EnemyState = EEnemyState::EES_Dead;
 	ClearAttackTimer();
 	HideHealthBar();
@@ -144,7 +145,7 @@ void AEnemy::Attack()
 	Super::Attack();
 	if (CombatTarget == nullptr) return;
 	EnemyState = EEnemyState::EES_Engaged;
-	PlayAttackMontage();
+	PlayRandomAttackMontage();
 }
 
 bool AEnemy::CanAttack()
@@ -241,6 +242,11 @@ void AEnemy::HideTargetLock()
 	{
 		TargetLockWidget->SetVisibility(false);
 	}
+}
+
+FOnTargetDeath* AEnemy::GetOnTargetDeath()
+{
+	return &OnTargetDeath;
 }
 
 void AEnemy::ShowTargetLock()

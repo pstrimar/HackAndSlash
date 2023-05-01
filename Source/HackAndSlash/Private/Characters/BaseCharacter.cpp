@@ -44,11 +44,12 @@ void ABaseCharacter::Attack()
 
 void ABaseCharacter::Die_Implementation()
 {
+	//CharacterDeath.Broadcast();
 	Tags.Add(FName("Dead"));
 	PlayDeathMontage();
 }
 
-int32 ABaseCharacter::PlayAttackMontage()
+int32 ABaseCharacter::PlayRandomAttackMontage()
 {
 	if (EquippedWeapon)
 	{

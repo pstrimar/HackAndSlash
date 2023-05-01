@@ -127,6 +127,9 @@ private:
 	void InitializeOverlay();
 	void SetHUDHealth();
 
+	UFUNCTION()
+	void OnTargetDeath();
+
 	/** Character Components*/
 	UPROPERTY(VisibleAnywhere)
 	USpringArmComponent* CameraBoom;

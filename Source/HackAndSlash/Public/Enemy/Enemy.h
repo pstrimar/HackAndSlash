@@ -25,6 +25,10 @@ public:
 	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 	virtual void ShowTargetLock() override;
 	virtual void HideTargetLock() override;
+	virtual FOnTargetDeath* GetOnTargetDeath() override;
+
+	UPROPERTY(BlueprintAssignable, Category = "EventDispatchers")
+	FOnTargetDeath OnTargetDeath;
 
 protected:	
 	virtual void BeginPlay() override;

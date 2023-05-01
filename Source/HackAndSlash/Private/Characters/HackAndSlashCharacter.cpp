@@ -248,9 +248,9 @@ void AHackAndSlashCharacter::Attack()
 	}
 	else if (CanAttack())
 	{
-		TraceForCombatTarget(TargetLocked);
+		if (CombatTarget == nullptr) TraceForCombatTarget(TargetLocked);
 
-		PlayAttackMontage();	
+		PlayAttackMontage(0);	
 		ActionState = EActionState::EAS_Attacking;
 	}
 }
@@ -458,6 +458,11 @@ void AHackAndSlashCharacter::TraceForCombatTarget(bool ShouldTargetLock)
 			{
 				if (ITargetLockInterface* TargetLockInterface = Cast<ITargetLockInterface>(CombatTarget))
 				{
+					FOnTargetDeath* OnTargetDeathDelegate = TargetLockInterface->GetOnTargetDeath();
+					if (OnTargetDeathDelegate)
+					{
+						(*OnTargetDeathDelegate).AddDynamic(this, &AHackAndSlashCharacter::OnTargetDeath);
+					}
 					TargetLockInterface->ShowTargetLock();
 				}
 			}
@@ -468,6 +473,11 @@ void AHackAndSlashCharacter::TraceForCombatTarget(bool ShouldTargetLock)
 	{
 		if (ITargetLockInterface* TargetLockInterface = Cast<ITargetLockInterface>(CombatTarget))
 		{
+			FOnTargetDeath* OnTargetDeathDelegate = TargetLockInterface->GetOnTargetDeath();
+			if (OnTargetDeathDelegate)
+			{
+				(*OnTargetDeathDelegate).RemoveDynamic(this, &AHackAndSlashCharacter::OnTargetDeath);
+			}
 			TargetLockInterface->HideTargetLock();
 		}
 		CombatTarget = nullptr;
@@ -539,14 +549,19 @@ void AHackAndSlashCharacter::ComboAttackSave()
 		switch (AttackCount)
 		{
 		case 0:
-			PlayAttackMontage(AttackCount);
 			AttackCount++;
+			PlayAttackMontage(AttackCount);
 			break;
 		case 1:
-			PlayAttackMontage(AttackCount);
 			AttackCount++;
+			PlayAttackMontage(AttackCount);
 			break;
 		case 2:
+			AttackCount++;
+			PlayAttackMontage(AttackCount);
+			break;
+		case 3:
+			AttackCount++;
 			PlayAttackMontage(AttackCount);
 			AttackCount = 0;
 			break;
@@ -603,4 +618,11 @@ void AHackAndSlashCharacter::SetHUDHealth()
 	{
 		Overlay->SetHealthBarPercent(Attributes->GetHealthPercent());
 	}
+}
+
+void AHackAndSlashCharacter::OnTargetDeath()
+{
+	SetMovementToDefault();
+	TargetLocked = false;
+	CombatTarget = nullptr;
 }

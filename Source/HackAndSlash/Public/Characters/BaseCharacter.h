@@ -12,6 +12,8 @@ class AWeapon;
 class UAttributeComponent;
 class UAnimMontage;
 
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCharacterDeath);
+
 UCLASS()
 class HACKANDSLASH_API ABaseCharacter : public ACharacter, public IHitInterface
 {
@@ -20,6 +22,9 @@ class HACKANDSLASH_API ABaseCharacter : public ACharacter, public IHitInterface
 public:
 	ABaseCharacter();
 	virtual void Tick(float DeltaTime) override;
+
+	//UPROPERTY(BlueprintAssignable, Category = "EventDispatchers")
+	//FOnCharacterDeath CharacterDeath;
 
 protected:
 	virtual void BeginPlay() override;
@@ -40,7 +45,7 @@ protected:
 	void DisableMeshCollision();
 
 	/** Montage */
-	virtual int32 PlayAttackMontage();
+	virtual int32 PlayRandomAttackMontage();
 	virtual void PlayAttackMontage(int32 ComboCount);
 	virtual int32 PlayDeathMontage();
 	virtual void PlayDodgeMontage(const FName& SectionName);
