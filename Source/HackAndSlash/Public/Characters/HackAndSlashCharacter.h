@@ -39,6 +39,7 @@ public:
 	virtual void AddHealth(AHealth* Health) override;
 	virtual void AddMagic(AMagic* Magic) override;
 	virtual void Jump() override;
+	virtual void Landed(const FHitResult& Hit) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -154,6 +155,7 @@ private:
 	void HideCharacterIfCameraClose();
 	void PlayNoMagicAudio();
 	void PlayDeathAudio();
+	void ResetDoubleJump();
 
 	UFUNCTION()
 	void OnTargetDeath();
@@ -204,7 +206,9 @@ private:
 	int32 AttackCount;
 	float DefaultSpeed = 600.f;
 	bool bAiming;
-	
+	int32 JumpCount;
+	FTimerHandle DoubleJumpResetTimer;
+	float DoubleJumpResetTime = 0.2f;
 
 	UPROPERTY(EditDefaultsOnly, Category = Movement)
 	float SprintSpeed = 1000.f;
@@ -229,6 +233,7 @@ private:
 
 	float TargetFOV;
 	bool TargetLocked;
+	bool DoubleJumpPressed;
 	FVector2D MovementVector;
 	FVector HitTarget;
 	FHUDPackage HUDPackage;
@@ -246,4 +251,5 @@ public:
 	FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }
 	FORCEINLINE EActionState GetActionState() const { return ActionState; }
 	FORCEINLINE bool GetTargetLocked() const { return TargetLocked; }
+	FORCEINLINE bool GetDoubleJumpPressed() const { return DoubleJumpPressed; }
 };

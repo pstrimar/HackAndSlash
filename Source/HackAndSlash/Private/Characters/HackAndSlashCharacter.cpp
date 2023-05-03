@@ -47,6 +47,10 @@ AHackAndSlashCharacter::AHackAndSlashCharacter()
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->TargetArmLength = 300.f;
+	CameraBoom->bEnableCameraLag = true;
+	CameraBoom->CameraLagSpeed = 10.f;
+	CameraBoom->bEnableCameraRotationLag = true;
+	CameraBoom->CameraRotationLagSpeed = 20.f;
 
 	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
 	AudioComponent->SetupAttachment(GetRootComponent());
@@ -55,6 +59,8 @@ AHackAndSlashCharacter::AHackAndSlashCharacter()
 	ViewCamera->SetupAttachment(CameraBoom);
 	ViewCamera->FieldOfView = DefaultFOV;
 	TargetFOV = DefaultFOV;
+	
+	JumpCount = 0;
 }
 
 void AHackAndSlashCharacter::Tick(float DeltaTime)
@@ -251,7 +257,7 @@ void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 	{
 		EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Look);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::Jump);
 		EnhancedInputComponent->BindAction(EKeyPressedAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::EKeyPressed);
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::Attack);
 		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Dodge);
@@ -329,7 +335,23 @@ void AHackAndSlashCharacter::AddMagic(AMagic* Magic)
 
 void AHackAndSlashCharacter::Jump()
 {
-	if (IsUnoccupied() || IsAttacking()) Super::Jump();
+	if (IsUnoccupied() || IsAttacking())
+	{
+		Super::Jump();
+		JumpCount++;
+		if (JumpCount == 2)
+		{
+			DoubleJumpPressed = true;
+			GetWorldTimerManager().SetTimer(DoubleJumpResetTimer, this, &AHackAndSlashCharacter::ResetDoubleJump, DoubleJumpResetTime);
+			LaunchCharacter(FVector(0.f, 0.f, GetCharacterMovement()->JumpZVelocity), false, true);
+		}
+	}
+}
+
+void AHackAndSlashCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+	JumpCount = 0;
 }
 
 void AHackAndSlashCharacter::BeginPlay()
@@ -345,7 +367,6 @@ void AHackAndSlashCharacter::BeginPlay()
 	}
 
 	Tags.Add(FName("EngageableTarget"));
-
 	InitializeOverlay();
 	if (LevelStartMontage)
 	{
@@ -915,6 +936,11 @@ void AHackAndSlashCharacter::PlayDeathAudio()
 		AudioComponent->Sound = DeathAudio;
 		AudioComponent->Play();
 	}
+}
+
+void AHackAndSlashCharacter::ResetDoubleJump()
+{
+	DoubleJumpPressed = false;
 }
 
 void AHackAndSlashCharacter::PlayNoMagicAudio()

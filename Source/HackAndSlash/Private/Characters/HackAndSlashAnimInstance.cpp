@@ -31,6 +31,7 @@ void UHackAndSlashAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		ActionState = HackAndSlashCharacter->GetActionState();
 		DeathPose = HackAndSlashCharacter->GetDeathPose();
 		TargetLocked = HackAndSlashCharacter->GetTargetLocked();
+		DoubleJumpPressed = HackAndSlashCharacter->GetDoubleJumpPressed();
 
 		if (TargetLocked)
 		{

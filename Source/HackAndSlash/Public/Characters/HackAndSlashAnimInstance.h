@@ -58,6 +58,9 @@ public:
 	bool TargetLocked;
 
 	UPROPERTY(BlueprintReadOnly, Category = Movement)
+	bool DoubleJumpPressed;
+
+	UPROPERTY(BlueprintReadOnly, Category = Movement)
 	ECharacterState CharacterState;
 
 	UPROPERTY(BlueprintReadOnly, Category = Movement)
