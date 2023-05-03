@@ -48,6 +48,7 @@ protected:
 	void PlayMontageSection(UAnimMontage* Montage, const FName& SectionName);
 	virtual int32 PlayRandomAttackMontage();
 	virtual void PlayAttackMontage(int32 ComboCount);
+	virtual void PlayAirAttackMontage();
 	virtual int32 PlayDeathMontage();
 	virtual void PlayDodgeMontage(const FName& SectionName);
 	void PlayHitReactMontage(const FName& SectionName);

@@ -439,7 +439,14 @@ void AHackAndSlashCharacter::Attack()
 	{
 		if (CombatTarget == nullptr) TraceForCombatTarget(TargetLocked);
 
-		PlayAttackMontage(0);	
+		if (GetMovementComponent()->IsFalling())
+		{
+			PlayAirAttackMontage();
+		}
+		else
+		{
+			PlayAttackMontage(0);
+		}
 		ActionState = EActionState::EAS_Attacking;
 	}
 	else if (CanUseMagic())

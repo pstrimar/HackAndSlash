@@ -67,6 +67,18 @@ void ABaseCharacter::PlayAttackMontage(int32 ComboCount)
 	}
 }
 
+void ABaseCharacter::PlayAirAttackMontage()
+{
+	if (EquippedWeapon->IsTwoHanded)
+	{
+		PlayMontageSection(TwoHandedAttackMontage, FName("AirAttack"));
+	}
+	else if (!EquippedWeapon->IsTwoHanded)
+	{
+		PlayMontageSection(OneHandedAttackMontage, FName("AirAttack"));
+	}
+}
+
 int32 ABaseCharacter::PlayDeathMontage()
 {
 	const int32 Selection = PlayRandomMontageSection(DeathMontage, DeathMontageSections);
