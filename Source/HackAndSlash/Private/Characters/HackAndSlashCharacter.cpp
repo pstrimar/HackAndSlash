@@ -7,21 +7,24 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/AudioComponent.h"
 #include "Components/AttributeComponent.h"
 #include "Items/Item.h"
 #include "Items/Weapons/Weapon.h"
+#include "Items/Weapons/Projectile.h"
 #include "Animation/AnimMontage.h"
 #include "Components/InputComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "Enemy/Enemy.h"
-#include "HUD/HackAndSlashHUD.h"
 #include "HUD/HackAndSlashOverlay.h"
 #include "Items/Soul.h"
 #include "Items/Treasure.h"
 #include "Items/Health.h"
+#include "Items/Magic.h"
 #include "Interfaces/TargetLockInterface.h"
 
 AHackAndSlashCharacter::AHackAndSlashCharacter()
@@ -44,6 +47,9 @@ AHackAndSlashCharacter::AHackAndSlashCharacter()
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->TargetArmLength = 300.f;
+
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
+	AudioComponent->SetupAttachment(GetRootComponent());
 
 	ViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ViewCamera"));
 	ViewCamera->SetupAttachment(CameraBoom);
@@ -78,6 +84,13 @@ void AHackAndSlashCharacter::Tick(float DeltaTime)
 	{
 		FollowTarget(DeltaTime);
 	}
+
+	FHitResult HitResult;
+	TraceUnderCrosshairs(HitResult);
+	HitTarget = HitResult.ImpactPoint;
+
+	SetHUDCrosshairs(DeltaTime);
+	HideCharacterIfCameraClose();
 }
 
 void AHackAndSlashCharacter::FollowTarget(float DeltaTime)
@@ -88,6 +101,146 @@ void AHackAndSlashCharacter::FollowTarget(float DeltaTime)
 	const FRotator InterpRot = FMath::RInterpTo(CurrentRot, TargetRot, DeltaTime, 5.f);
 	const FRotator NewRot = UKismetMathLibrary::MakeRotator(CurrentRot.Roll, CurrentRot.Pitch, InterpRot.Yaw);
 	GetController()->SetControlRotation(NewRot);
+}
+
+void AHackAndSlashCharacter::TraceUnderCrosshairs(FHitResult& TraceHitResult)
+{
+	FVector2D ViewportSize;
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(ViewportSize);
+	}
+
+	FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
+	FVector CrosshairWorldPosition;
+	FVector CrosshairWorldDirection;
+	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
+		UGameplayStatics::GetPlayerController(this, 0),
+		CrosshairLocation,
+		CrosshairWorldPosition,
+		CrosshairWorldDirection
+	);
+
+	if (bScreenToWorld)
+	{
+		FVector Start = CrosshairWorldPosition;
+
+		float DistanceToCharacter = (GetActorLocation() - Start).Size();
+		Start += CrosshairWorldDirection * (DistanceToCharacter + 100.f);
+		FVector End = Start + CrosshairWorldDirection * TargetTraceLength;
+
+		GetWorld()->LineTraceSingleByChannel(
+			TraceHitResult,
+			Start,
+			End,
+			ECollisionChannel::ECC_Visibility
+		);
+
+		if (!TraceHitResult.bBlockingHit)
+		{
+			TraceHitResult.ImpactPoint = End;
+		}
+
+		if (TraceHitResult.GetActor() && TraceHitResult.GetActor()->Implements<UInteractWithCrosshairsInterface>())
+		{
+			HUDPackage.CrosshairsColor = FLinearColor::Red;
+		}
+		else
+		{
+			HUDPackage.CrosshairsColor = FLinearColor::White;
+		}
+	}
+}
+
+void AHackAndSlashCharacter::SetHUDCrosshairs(float DeltaTime)
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		AHackAndSlashHUD* HUD = Cast<AHackAndSlashHUD>(PlayerController->GetHUD());
+		if (HUD)
+		{
+			if (!EquippedWeapon)
+			{
+				HUDPackage.CrosshairsCenter = HUD->CrosshairsCenter;
+				HUDPackage.CrosshairsLeft = HUD->CrosshairsLeft;
+				HUDPackage.CrosshairsRight = HUD->CrosshairsRight;
+				HUDPackage.CrosshairsTop = HUD->CrosshairsTop;
+				HUDPackage.CrosshairsBottom = HUD->CrosshairsBottom;
+			}
+			else
+			{
+				HUDPackage.CrosshairsCenter = nullptr;
+				HUDPackage.CrosshairsLeft = nullptr;
+				HUDPackage.CrosshairsRight = nullptr;
+				HUDPackage.CrosshairsTop = nullptr;
+				HUDPackage.CrosshairsBottom = nullptr;
+			}
+			// Calculate crosshair spread
+			FVector2D WalkSpeedRange(0.f, GetCharacterMovement()->MaxWalkSpeed);
+			FVector2D VelocityMultiplier(0.f, 1.f);
+			FVector Velocity = GetVelocity();
+			Velocity.Z = 0.f;
+
+			CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped(WalkSpeedRange, VelocityMultiplier, Velocity.Size());
+
+			if (GetCharacterMovement()->IsFalling())
+			{
+				CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 2.25f, DeltaTime, 2.25f);
+			}
+			else
+			{
+				CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 0.f, DeltaTime, 30.f);
+			}
+
+			if (bAiming)
+			{
+				CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.58f, DeltaTime, 30.f);
+			}
+			else
+			{
+				CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.f, DeltaTime, 30.f);
+			}
+
+			CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor, 0.f, DeltaTime, 40.f);
+
+			HUDPackage.CrosshairSpread =
+				0.5f +
+				CrosshairVelocityFactor +
+				CrosshairInAirFactor -
+				CrosshairAimFactor +
+				CrosshairShootingFactor;
+
+			HUD->SetHUDPackage(HUDPackage);
+		}
+	}
+}
+
+void AHackAndSlashCharacter::ShootProjectile(const FName& SocketName)
+{
+	ShootProjectile(HitTarget, SocketName);
+}
+
+void AHackAndSlashCharacter::ShootProjectile(const FVector& Target, const FName& SocketName)
+{
+	if (EnergyProjectileClass)
+	{
+		const FVector StartingLocation = GetMesh()->GetSocketLocation(SocketName);
+		FVector ToTarget = Target - StartingLocation;
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			World->SpawnActor<AProjectile>(
+				EnergyProjectileClass,
+				StartingLocation,
+				ToTarget.Rotation(),
+				SpawnParams
+				);
+		}
+	}
 }
 
 void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -105,6 +258,8 @@ void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::SprintStart);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AHackAndSlashCharacter::SprintEnd);
 		EnhancedInputComponent->BindAction(TargetLockAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::TargetLock);
+		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::AimButtonPressed);
+		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &AHackAndSlashCharacter::AimButtonReleased);
 	}
 }
 
@@ -163,6 +318,15 @@ void AHackAndSlashCharacter::AddHealth(AHealth* Health)
 	}
 }
 
+void AHackAndSlashCharacter::AddMagic(AMagic* Magic)
+{
+	if (Attributes && Overlay)
+	{
+		Attributes->AddMagic(Magic->GetMagic());
+		Overlay->SetMagicBarPercent(Attributes->GetMagicPercent());
+	}
+}
+
 void AHackAndSlashCharacter::Jump()
 {
 	if (IsUnoccupied() || IsAttacking()) Super::Jump();
@@ -183,12 +347,16 @@ void AHackAndSlashCharacter::BeginPlay()
 	Tags.Add(FName("EngageableTarget"));
 
 	InitializeOverlay();
+	if (LevelStartMontage)
+	{
+		PlayMontageSection(LevelStartMontage, FName("Default"));
+	}
 }
 
 void AHackAndSlashCharacter::Move(const FInputActionValue& Value)
 {
 	MovementVector = Value.Get<FVector2D>();
-	if (ActionState != EActionState::EAS_Unoccupied) return;
+	if (!CanMove()) return;
 
 	if (GetController() && MovementVector != FVector2D::ZeroVector)
 	{
@@ -246,12 +414,40 @@ void AHackAndSlashCharacter::Attack()
 	{
 		SaveAttack = true;
 	}
-	else if (CanAttack())
+	else if (CanAttackWithWeapon())
 	{
 		if (CombatTarget == nullptr) TraceForCombatTarget(TargetLocked);
 
 		PlayAttackMontage(0);	
 		ActionState = EActionState::EAS_Attacking;
+	}
+	else if (CanUseMagic())
+	{
+		if (Attributes && Attributes->GetMagic() >= Attributes->GetMagicCost())
+		{
+			DoMagicAttack(0);
+		}
+		else
+		{
+			PlayNoMagicAudio();
+		}
+	}
+}
+
+void AHackAndSlashCharacter::DoMagicAttack(int32 ComboCount)
+{
+	if (CombatTarget == nullptr) TraceForCombatTarget(TargetLocked);
+
+	const FRotator CurrentRot = GetActorRotation();
+	const FRotator TargetRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), FVector(HitTarget.X, HitTarget.Y, 0.f));
+	SetActorRotation(TargetRot);
+
+	PlayMagicAttackMontage(ComboCount);
+	ActionState = EActionState::EAS_UsingMagic;
+	if (Attributes && Overlay)
+	{
+		Attributes->UseMagic(Attributes->GetMagicCost());
+		Overlay->SetMagicBarPercent(Attributes->GetMagicPercent());
 	}
 }
 
@@ -323,6 +519,23 @@ void AHackAndSlashCharacter::TargetLock()
 	}
 }
 
+void AHackAndSlashCharacter::AimButtonPressed()
+{
+	if (EquippedWeapon) return;
+
+	bAiming = true;
+	GetCharacterMovement()->MaxWalkSpeed = AimWalkSpeed;
+	TargetFOV = AimingFOV;
+}
+
+void AHackAndSlashCharacter::AimButtonReleased()
+{
+	if (EquippedWeapon) return;
+	bAiming = false;
+	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
+	TargetFOV = DefaultFOV;
+}
+
 void AHackAndSlashCharacter::SetMovementToStrafing()
 {
 	GetCharacterMovement()->bOrientRotationToMovement = false;
@@ -365,10 +578,16 @@ void AHackAndSlashCharacter::DodgeEnd()
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 }
 
-bool AHackAndSlashCharacter::CanAttack()
+bool AHackAndSlashCharacter::CanAttackWithWeapon()
 {
 	return EquippedWeapon && ActionState == EActionState::EAS_Unoccupied &&
 		CharacterState != ECharacterState::ECS_Unequipped;
+}
+
+bool AHackAndSlashCharacter::CanUseMagic()
+{
+	return ActionState == EActionState::EAS_Unoccupied &&
+		CharacterState == ECharacterState::ECS_Unequipped;
 }
 
 bool AHackAndSlashCharacter::CanDisarm()
@@ -421,6 +640,19 @@ void AHackAndSlashCharacter::Swap()
 
 	PlayEquipMontage(FName("Swap"));
 	CharacterState = EquippedWeapon->IsTwoHanded ? ECharacterState::ECS_EquippedTwoHandedWeapon : ECharacterState::ECS_EquippedOneHandedWeapon;
+}
+
+bool AHackAndSlashCharacter::CanMove()
+{
+	return ActionState == EActionState::EAS_Unoccupied || ActionState == EActionState::EAS_UsingMagic;
+}
+
+void AHackAndSlashCharacter::PlayMagicAttackMontage(int32 ComboCount)
+{
+	if (MagicAttackMontage && MagicAttackMontageSections.Num() - 1 >= ComboCount)
+	{
+		PlayMontageSection(MagicAttackMontage, MagicAttackMontageSections[ComboCount]);
+	}
 }
 
 void AHackAndSlashCharacter::PlayEquipMontage(const FName& SectionName)
@@ -490,11 +722,12 @@ void AHackAndSlashCharacter::Die_Implementation()
 
 	ActionState = EActionState::EAS_Dead;
 	DisableMeshCollision();
+	PlayDeathAudio();
 }
 
 bool AHackAndSlashCharacter::HasEnoughStamina()
 {
-	return Attributes && Attributes->GetStamina() > Attributes->GetDodgeCost();
+	return Attributes && Attributes->GetStamina() >= Attributes->GetDodgeCost();
 }
 
 bool AHackAndSlashCharacter::IsOccupied()
@@ -571,6 +804,33 @@ void AHackAndSlashCharacter::ComboAttackSave()
 	}
 }
 
+void AHackAndSlashCharacter::MagicComboAttackSave()
+{
+	if (SaveAttack)
+	{
+		SaveAttack = false;
+
+		switch (AttackCount)
+		{
+		case 0:
+			AttackCount++;
+			DoMagicAttack(AttackCount);
+			break;
+		case 1:
+			AttackCount++;
+			DoMagicAttack(AttackCount);
+			break;
+		case 2:
+			AttackCount++;
+			DoMagicAttack(AttackCount);
+			AttackCount = 0;
+			break;
+		default:
+			break;
+		}
+	}
+}
+
 void AHackAndSlashCharacter::ResetCombo()
 {
 	AttackCount = 0;
@@ -579,7 +839,7 @@ void AHackAndSlashCharacter::ResetCombo()
 
 bool AHackAndSlashCharacter::IsAttacking()
 {
-	return ActionState == EActionState::EAS_Attacking;
+	return ActionState == EActionState::EAS_Attacking || ActionState == EActionState::EAS_UsingMagic;
 }
 
 bool AHackAndSlashCharacter::IsUnoccupied()
@@ -617,6 +877,52 @@ void AHackAndSlashCharacter::SetHUDHealth()
 	if (Overlay && Attributes)
 	{
 		Overlay->SetHealthBarPercent(Attributes->GetHealthPercent());
+	}
+}
+
+void AHackAndSlashCharacter::HideCharacterIfCameraClose()
+{
+	if ((ViewCamera->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
+	{
+		GetMesh()->SetVisibility(false);
+		if (EquippedWeapon && EquippedWeapon->GetItemMesh())
+		{
+			EquippedWeapon->GetItemMesh()->bOwnerNoSee = true;
+		}
+		if (StoredWeapon && StoredWeapon->GetItemMesh())
+		{
+			StoredWeapon->GetItemMesh()->bOwnerNoSee = true;
+		}
+	}
+	else
+	{
+		GetMesh()->SetVisibility(true);
+		if (EquippedWeapon && EquippedWeapon->GetItemMesh())
+		{
+			EquippedWeapon->GetItemMesh()->bOwnerNoSee = false;
+		}
+		if (StoredWeapon && StoredWeapon->GetItemMesh())
+		{
+			StoredWeapon->GetItemMesh()->bOwnerNoSee = false;
+		}
+	}
+}
+
+void AHackAndSlashCharacter::PlayDeathAudio()
+{
+	if (AudioComponent && DeathAudio && !AudioComponent->IsPlaying())
+	{
+		AudioComponent->Sound = DeathAudio;
+		AudioComponent->Play();
+	}
+}
+
+void AHackAndSlashCharacter::PlayNoMagicAudio()
+{
+	if (AudioComponent && NoMagicAudio && !AudioComponent->IsPlaying())
+	{
+		AudioComponent->Sound = NoMagicAudio;
+		AudioComponent->Play();
 	}
 }
 

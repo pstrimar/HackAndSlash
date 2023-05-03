@@ -38,6 +38,12 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Breakable Properties")
 	TArray<TSubclassOf<class ATreasure>> TreasureClasses;
 
+	UPROPERTY(EditAnywhere, Category = "Breakable Properties")
+	TSubclassOf<class AMagic> MagicClass;
+
+	UPROPERTY(EditAnywhere, Category = "Breakable Properties")
+	TSubclassOf<class AHealth> HealthClass;
+
 	UPROPERTY(EditAnywhere)
 	float TreasureZOffset;
 

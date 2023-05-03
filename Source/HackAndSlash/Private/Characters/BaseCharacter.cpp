@@ -36,10 +36,7 @@ void ABaseCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* H
 
 void ABaseCharacter::Attack()
 {
-	if (CombatTarget && CombatTarget->ActorHasTag(FName("Dead")))
-	{
-		CombatTarget = nullptr;
-	}
+	
 }
 
 void ABaseCharacter::Die_Implementation()
@@ -212,7 +209,7 @@ int32 ABaseCharacter::PlayRandomMontageSection(UAnimMontage* Montage, const TArr
 	return Selection;
 }
 
-bool ABaseCharacter::CanAttack()
+bool ABaseCharacter::CanAttackWithWeapon()
 {
 	return false;
 }

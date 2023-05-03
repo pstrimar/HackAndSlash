@@ -7,6 +7,7 @@
 #include "InputActionValue.h"
 #include "CharacterTypes.h"
 #include "Interfaces/PickupInterface.h"
+#include "HUD/HackAndSlashHUD.h"
 #include "HackAndSlashCharacter.generated.h"
 
 class UInputMappingContext;
@@ -19,6 +20,7 @@ class UHackAndSlashOverlay;
 class ASoul;
 class ATreasure;
 class AHealth;
+class AMagic;
 
 UCLASS()
 class HACKANDSLASH_API AHackAndSlashCharacter : public ABaseCharacter, public IPickupInterface
@@ -35,6 +37,7 @@ public:
 	virtual void AddSouls(ASoul* Soul) override;
 	virtual void AddGold(ATreasure* Treasure) override;
 	virtual void AddHealth(AHealth* Health) override;
+	virtual void AddMagic(AMagic* Magic) override;
 	virtual void Jump() override;
 
 protected:
@@ -45,10 +48,13 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void EKeyPressed();
 	virtual void Attack() override;
+	void DoMagicAttack(int32 ComboCount);
 	void Dodge();
 	void SprintStart();
 	void SprintEnd();
 	void TargetLock();
+	void AimButtonPressed();
+	void AimButtonReleased();
 	void SetMovementToStrafing();
 	void SetMovementToDefault();
 
@@ -56,13 +62,16 @@ protected:
 	void EquipWeapon(AWeapon* Weapon);
 	virtual void AttackEnd() override;
 	virtual void DodgeEnd() override;
-	virtual bool CanAttack() override;
+	virtual bool CanAttackWithWeapon() override;
+	bool CanUseMagic();
 	bool CanDisarm();
 	void Disarm();
 	bool CanArm();
 	void Arm();
 	bool CanSwap();
 	void Swap();
+	bool CanMove();
+	void PlayMagicAttackMontage(int32 ComboCount);
 	void PlayEquipMontage(const FName& SectionName);
 	void BoxTrace(TArray<FHitResult>& BoxHits);
 	void TraceForCombatTarget(bool ShouldTargetLock);
@@ -71,6 +80,16 @@ protected:
 	bool IsOccupied();
 	virtual bool IsDead() override;
 	void FollowTarget(float DeltaTime);
+	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
+	void SetHUDCrosshairs(float DeltaTime);
+
+	UFUNCTION(BlueprintCallable)
+	void ShootProjectile(const FName& SocketName);
+
+	void ShootProjectile(const FVector& Target, const FName& SocketName);
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	TSubclassOf<class AProjectile> EnergyProjectileClass;
 
 	UFUNCTION(BlueprintCallable)
 	void AttachWeaponToBack();
@@ -86,6 +105,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void ComboAttackSave();
+
+	UFUNCTION(BlueprintCallable)
+	void MagicComboAttackSave();
 
 	UFUNCTION(BlueprintCallable)
 	void ResetCombo();
@@ -120,12 +142,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputAction* TargetLockAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	UInputAction* AimAction;
+
 private:
 	bool IsAttacking();
 	bool IsUnoccupied();
 	bool IsSprinting();
 	void InitializeOverlay();
 	void SetHUDHealth();
+	void HideCharacterIfCameraClose();
+	void PlayNoMagicAudio();
+	void PlayDeathAudio();
 
 	UFUNCTION()
 	void OnTargetDeath();
@@ -137,6 +165,9 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	UCameraComponent* ViewCamera;
 
+	UPROPERTY(VisibleAnywhere)
+	UAudioComponent* AudioComponent;
+
 	UPROPERTY(VisibleInstanceOnly)
 	AItem* OverlappingItem;
 
@@ -146,6 +177,15 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Montages)
 	UAnimMontage* EquipMontage;
 
+	UPROPERTY(EditDefaultsOnly, Category = Montages)
+	UAnimMontage* MagicAttackMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = Montages)
+	UAnimMontage* LevelStartMontage;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	TArray<FName> MagicAttackMontageSections;
+
 	ECharacterState CharacterState = ECharacterState::ECS_Unequipped;
 
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
@@ -154,12 +194,23 @@ private:
 	UPROPERTY()
 	UHackAndSlashOverlay* Overlay;
 
+	UPROPERTY(EditAnywhere, Category = Combat)
+	USoundBase* NoMagicAudio;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	USoundBase* DeathAudio;
+
 	bool SaveAttack;
 	int32 AttackCount;
 	float DefaultSpeed = 600.f;
+	bool bAiming;
+	
 
 	UPROPERTY(EditDefaultsOnly, Category = Movement)
 	float SprintSpeed = 1000.f;
+
+	UPROPERTY(EditAnywhere, Category = Movement)
+	float AimWalkSpeed = 400.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = Movement)
 	float DefaultFOV = 90.f;
@@ -167,11 +218,29 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Movement)
 	float SprintFOV = 100.f;
 
+	UPROPERTY(EditDefaultsOnly, Category = Movement)
+	float AimingFOV = 30.f;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	float TargetTraceLength = 80000.f;
+
+	UPROPERTY(EditAnywhere)
+	float CameraThreshold = 200.f;
+
 	float TargetFOV;
-
 	bool TargetLocked;
-
 	FVector2D MovementVector;
+	FVector HitTarget;
+	FHUDPackage HUDPackage;
+
+	/**
+	 * HUD and crosshairs
+	*/
+
+	float CrosshairVelocityFactor;
+	float CrosshairInAirFactor;
+	float CrosshairAimFactor;
+	float CrosshairShootingFactor;
 
 public:
 	FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }

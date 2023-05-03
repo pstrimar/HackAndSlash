@@ -6,6 +6,7 @@
 #include "Characters/BaseCharacter.h"
 #include "Characters/CharacterTypes.h"
 #include "Interfaces/TargetLockInterface.h"
+#include "Interfaces/InteractWithCrosshairsInterface.h"
 #include "Enemy.generated.h"
 
 class UHealthBarComponent;
@@ -13,7 +14,7 @@ class UPawnSensingComponent;
 class UWidgetComponent;
 
 UCLASS()
-class HACKANDSLASH_API AEnemy : public ABaseCharacter, public ITargetLockInterface
+class HACKANDSLASH_API AEnemy : public ABaseCharacter, public ITargetLockInterface, public IInteractWithCrosshairsInterface
 {
 	GENERATED_BODY()
 
@@ -34,10 +35,11 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void Die_Implementation() override;
-	void SpawnSoul();
-
+	void SpawnSoulPickup();
+	void SpawnHealthPickup();
+	void SpawnMagicPickup();
 	virtual void Attack() override;
-	virtual bool CanAttack() override;
+	virtual bool CanAttackWithWeapon() override;
 	virtual void AttackEnd() override;
 	virtual void HandleDamage(float DamageAmount) override;
 	virtual void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled) override;
@@ -138,6 +140,12 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	TSubclassOf<class ASoul> SoulClass;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	TSubclassOf<class AHealth> HealthClass;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	TSubclassOf<class AMagic> MagicClass;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	bool TwoWeapons;

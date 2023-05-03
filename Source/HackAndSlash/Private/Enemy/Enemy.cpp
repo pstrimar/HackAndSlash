@@ -12,6 +12,8 @@
 #include "HUD/HealthBarComponent.h"
 #include "Items/Weapons/Weapon.h"
 #include "Items/Soul.h"
+#include "Items/Health.h"
+#include "Items/Magic.h"
 
 AEnemy::AEnemy()
 {
@@ -122,10 +124,42 @@ void AEnemy::Die_Implementation()
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 	DisableMeshCollision();
-	SpawnSoul();
+	SpawnSoulPickup();
+	SpawnHealthPickup();
+	SpawnMagicPickup();
 }
 
-void AEnemy::SpawnSoul()
+void AEnemy::SpawnHealthPickup()
+{
+	UWorld* World = GetWorld();
+	if (World && HealthClass && Attributes)
+	{
+		const FVector SpawnLocation = GetActorLocation() + FVector(-125.f, 0.f, 0.f);
+		AHealth* SpawnedHealth = World->SpawnActor<AHealth>(HealthClass, SpawnLocation, GetActorRotation());
+		if (SpawnedHealth)
+		{
+			SpawnedHealth->SetHealth(Attributes->GetHealthDropped());
+			SpawnedHealth->SetOwner(this);
+		}
+	}
+}
+
+void AEnemy::SpawnMagicPickup()
+{
+	UWorld* World = GetWorld();
+	if (World && MagicClass && Attributes)
+	{
+		const FVector SpawnLocation = GetActorLocation() + FVector(0.f, -125.f, 0.f);
+		AMagic* SpawnedMagic = World->SpawnActor<AMagic>(MagicClass, SpawnLocation, GetActorRotation());
+		if (SpawnedMagic)
+		{
+			SpawnedMagic->SetMagic(Attributes->GetMagicDropped());
+			SpawnedMagic->SetOwner(this);
+		}
+	}
+}
+
+void AEnemy::SpawnSoulPickup()
 {
 	UWorld* World = GetWorld();
 	if (World && SoulClass && Attributes)
@@ -134,7 +168,7 @@ void AEnemy::SpawnSoul()
 		ASoul* SpawnedSoul = World->SpawnActor<ASoul>(SoulClass, SpawnLocation, GetActorRotation());
 		if (SpawnedSoul)
 		{
-			SpawnedSoul->SetSouls(Attributes->GetSouls());
+			SpawnedSoul->SetSouls(Attributes->GetSoulsDropped());
 			SpawnedSoul->SetOwner(this);
 		}
 	}
@@ -148,7 +182,7 @@ void AEnemy::Attack()
 	PlayRandomAttackMontage();
 }
 
-bool AEnemy::CanAttack()
+bool AEnemy::CanAttackWithWeapon()
 {
 	return IsInsideAttackRadius() && !IsAttacking() && !IsEngaged() && !IsDead();
 }
@@ -209,7 +243,7 @@ void AEnemy::CheckCombatTarget()
 		ClearAttackTimer();
 		if (!IsEngaged()) ChaseTarget();
 	}
-	else if (CanAttack())
+	else if (CanAttackWithWeapon())
 	{
 		StartAttackTimer();
 	}

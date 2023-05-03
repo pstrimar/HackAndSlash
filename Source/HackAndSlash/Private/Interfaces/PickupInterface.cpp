@@ -20,3 +20,7 @@ void IPickupInterface::AddGold(class ATreasure* Treasure)
 void IPickupInterface::AddHealth(AHealth* Health)
 {
 }
+
+void IPickupInterface::AddMagic(AMagic* Magic)
+{
+}

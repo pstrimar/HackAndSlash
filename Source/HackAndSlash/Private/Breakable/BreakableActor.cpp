@@ -4,6 +4,8 @@
 #include "Breakable/BreakableActor.h"
 #include "GeometryCollection/GeometryCollectionComponent.h"
 #include "Items/Treasure.h"
+#include "Items/Magic.h"
+#include "Items/Health.h"
 #include "Components/CapsuleComponent.h"
 #include "Chaos/ChaosGameplayEventDispatcher.h"
 
@@ -21,6 +23,7 @@ ABreakableActor::ABreakableActor()
 	Capsule->SetupAttachment(GetRootComponent());
 	Capsule->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+	Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
 }
 
 void ABreakableActor::BeginPlay()
@@ -35,13 +38,33 @@ void ABreakableActor::SpawnTreasure()
 	if (bBroken) return;
 
 	bBroken = true;
-	UWorld* World = GetWorld();
-	if (World && TreasureClasses.Num() > 0)
-	{
-		FVector Location = GetActorLocation();
-		Location.Z += TreasureZOffset;
-		const int32 Index = FMath::RandRange(0, TreasureClasses.Num() - 1);
-		World->SpawnActor<ATreasure>(TreasureClasses[Index], Location, GetActorRotation());
+	if (UWorld* World = GetWorld())
+	{		
+		if (TreasureClasses.Num() > 0)
+		{
+			const FVector RandomVector = FMath::VRand();
+			const FVector Offset = FVector(RandomVector.X, RandomVector.Y, 0.f).GetSafeNormal() * 125.f;
+			FVector Location = GetActorLocation() + Offset;
+			Location.Z += TreasureZOffset;
+			const int32 Index = FMath::RandRange(0, TreasureClasses.Num() - 1);
+			World->SpawnActor<ATreasure>(TreasureClasses[Index], Location, GetActorRotation());
+		}
+		if (MagicClass)
+		{
+			const FVector RandomVector = FMath::VRand();
+			const FVector Offset = FVector(RandomVector.X, RandomVector.Y, 0.f).GetSafeNormal() * 125.f;
+			FVector Location = GetActorLocation() + Offset;
+			Location.Z += TreasureZOffset;
+			World->SpawnActor<AMagic>(MagicClass, Location, GetActorRotation());
+		}
+		if (HealthClass)
+		{
+			const FVector RandomVector = FMath::VRand();
+			const FVector Offset = FVector(RandomVector.X, RandomVector.Y, 0.f).GetSafeNormal() * 125.f;
+			FVector Location = GetActorLocation() + Offset;
+			Location.Z += TreasureZOffset;
+			World->SpawnActor<AHealth>(HealthClass, Location, GetActorRotation());
+		}
 	}
 }
 

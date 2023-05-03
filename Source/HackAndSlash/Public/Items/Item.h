@@ -73,6 +73,9 @@ private:
 	UPROPERTY(EditAnywhere)
 	class UNiagaraSystem* PickupEffect;
 
+public:
+	FORCEINLINE UStaticMeshComponent* GetItemMesh() const { return ItemMesh; }
+
 };
 
 template<typename T>

@@ -39,12 +39,13 @@ protected:
 	void SpawnHitParticles(const FVector& ImpactPoint);
 	virtual void HandleDamage(float DamageAmount);
 	void DisableCapsule();
-	virtual bool CanAttack();
+	virtual bool CanAttackWithWeapon();
 	bool IsAlive();
 	virtual bool IsDead();
 	void DisableMeshCollision();
 
 	/** Montage */
+	void PlayMontageSection(UAnimMontage* Montage, const FName& SectionName);
 	virtual int32 PlayRandomAttackMontage();
 	virtual void PlayAttackMontage(int32 ComboCount);
 	virtual int32 PlayDeathMontage();
@@ -83,7 +84,6 @@ protected:
 	TEnumAsByte<EDeathPose> DeathPose;
 
 private:
-	void PlayMontageSection(UAnimMontage* Montage, const FName& SectionName);
 	int32 PlayRandomMontageSection(UAnimMontage* Montage, const TArray<FName>& SectionNames);
 
 	UPROPERTY(EditAnywhere, Category = Combat)

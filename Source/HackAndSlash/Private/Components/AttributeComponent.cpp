@@ -26,14 +26,14 @@ void UAttributeComponent::AddHealth(float HealAmount)
 	Health = FMath::Clamp(Health + HealAmount, 0.f, MaxHealth);
 }
 
-void UAttributeComponent::UseStamina(float StaminaCost)
+void UAttributeComponent::UseStamina(float StaminaAmount)
 {
-	Stamina = FMath::Clamp(Stamina - StaminaCost, 0.f, MaxStamina);
+	Stamina = FMath::Clamp(Stamina - StaminaAmount, 0.f, MaxStamina);
 }
 
-void UAttributeComponent::UseStaminaOverTime(float StaminaCost, float DeltaTime)
+void UAttributeComponent::UseStaminaOverTime(float StaminaAmount, float DeltaTime)
 {
-	Stamina = FMath::Clamp(Stamina - StaminaCost * DeltaTime, 0.f, MaxStamina);
+	Stamina = FMath::Clamp(Stamina - StaminaAmount * DeltaTime, 0.f, MaxStamina);
 }
 
 float UAttributeComponent::GetHealthPercent()
@@ -44,6 +44,11 @@ float UAttributeComponent::GetHealthPercent()
 float UAttributeComponent::GetStaminaPercent()
 {
 	return Stamina / MaxStamina;
+}
+
+float UAttributeComponent::GetMagicPercent()
+{
+	return Magic / MaxMagic;
 }
 
 bool UAttributeComponent::IsAlive()
@@ -61,7 +66,6 @@ void UAttributeComponent::AddGold(int32 AmountOfGold)
 	Gold += AmountOfGold;
 }
 
-
 void UAttributeComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -71,5 +75,15 @@ void UAttributeComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 void UAttributeComponent::RegenStamina(float DeltaTime)
 {
 	Stamina = FMath::Clamp(Stamina + StaminaRegenRate * DeltaTime, 0.f, MaxStamina);
+}
+
+void UAttributeComponent::UseMagic(float MagicAmount)
+{
+	Magic = FMath::Clamp(Magic - MagicAmount, 0.f, MaxMagic);
+}
+
+void UAttributeComponent::AddMagic(float MagicAmount)
+{
+	Magic = FMath::Clamp(Magic + MagicAmount, 0.f, MaxMagic);
 }
 
