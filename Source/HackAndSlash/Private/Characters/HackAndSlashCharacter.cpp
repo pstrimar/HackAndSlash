@@ -266,6 +266,7 @@ void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 		EnhancedInputComponent->BindAction(TargetLockAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::TargetLock);
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::AimButtonPressed);
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &AHackAndSlashCharacter::AimButtonReleased);
+		EnhancedInputComponent->BindAction(DropWeaponAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::DropWeapon);
 	}
 }
 
@@ -341,9 +342,8 @@ void AHackAndSlashCharacter::Jump()
 		JumpCount++;
 		if (JumpCount == 2)
 		{
-			DoubleJumpPressed = true;
 			GetWorldTimerManager().SetTimer(DoubleJumpResetTimer, this, &AHackAndSlashCharacter::ResetDoubleJump, DoubleJumpResetTime);
-			LaunchCharacter(FVector(0.f, 0.f, GetCharacterMovement()->JumpZVelocity), false, true);
+			LaunchCharacter(FVector(0.f, 0.f, GetCharacterMovement()->JumpZVelocity), true, true);
 		}
 	}
 }
@@ -566,6 +566,16 @@ void AHackAndSlashCharacter::AimButtonReleased()
 	bAiming = false;
 	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
 	TargetFOV = DefaultFOV;
+}
+
+void AHackAndSlashCharacter::DropWeapon()
+{
+	if (EquippedWeapon)
+	{
+		EquippedWeapon->Drop();
+		EquippedWeapon = nullptr;
+		CharacterState = ECharacterState::ECS_Unequipped;
+	}
 }
 
 void AHackAndSlashCharacter::SetMovementToStrafing()
@@ -951,7 +961,7 @@ void AHackAndSlashCharacter::PlayDeathAudio()
 
 void AHackAndSlashCharacter::ResetDoubleJump()
 {
-	DoubleJumpPressed = false;
+	JumpCount = 0;
 }
 
 void AHackAndSlashCharacter::PlayNoMagicAudio()

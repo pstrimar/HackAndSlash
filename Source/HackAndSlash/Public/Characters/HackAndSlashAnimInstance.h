@@ -58,7 +58,7 @@ public:
 	bool TargetLocked;
 
 	UPROPERTY(BlueprintReadOnly, Category = Movement)
-	bool DoubleJumpPressed;
+	int32 JumpCount;
 
 	UPROPERTY(BlueprintReadOnly, Category = Movement)
 	ECharacterState CharacterState;

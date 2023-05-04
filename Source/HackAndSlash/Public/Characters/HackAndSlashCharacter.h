@@ -56,6 +56,7 @@ protected:
 	void TargetLock();
 	void AimButtonPressed();
 	void AimButtonReleased();
+	void DropWeapon();
 	void SetMovementToStrafing();
 	void SetMovementToDefault();
 
@@ -146,6 +147,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputAction* AimAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	UInputAction* DropWeaponAction;
+
 private:
 	bool IsAttacking();
 	bool IsUnoccupied();
@@ -233,7 +237,6 @@ private:
 
 	float TargetFOV;
 	bool TargetLocked;
-	bool DoubleJumpPressed;
 	FVector2D MovementVector;
 	FVector HitTarget;
 	FHUDPackage HUDPackage;
@@ -251,5 +254,5 @@ public:
 	FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }
 	FORCEINLINE EActionState GetActionState() const { return ActionState; }
 	FORCEINLINE bool GetTargetLocked() const { return TargetLocked; }
-	FORCEINLINE bool GetDoubleJumpPressed() const { return DoubleJumpPressed; }
+	FORCEINLINE int32 GetJumpCount() const { return JumpCount; }
 };
