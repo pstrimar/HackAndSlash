@@ -114,6 +114,9 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void ResetCombo();
 
+	UFUNCTION(BlueprintCallable)
+	void SlowTime(float TimeDilation);
+
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	FVector BoxTraceExtend = FVector(100.f);
 
@@ -160,6 +163,7 @@ private:
 	void PlayNoMagicAudio();
 	void PlayDeathAudio();
 	void ResetDoubleJump();
+	void ResetTargetLock();
 
 	UFUNCTION()
 	void OnTargetDeath();

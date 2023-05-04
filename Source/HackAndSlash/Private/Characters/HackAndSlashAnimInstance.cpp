@@ -36,7 +36,6 @@ void UHackAndSlashAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		if (TargetLocked)
 		{
 			MovementRotation = UKismetAnimationLibrary::CalculateDirection(HackAndSlashMovement->Velocity, HackAndSlashCharacter->GetActorRotation());
-			UE_LOG(LogTemp, Warning, TEXT("Movement Rotation: %f"), MovementRotation);
 		}
 
 		if (GroundSpeed > 0.f)

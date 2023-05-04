@@ -166,7 +166,7 @@ void AHackAndSlashCharacter::SetHUDCrosshairs(float DeltaTime)
 		AHackAndSlashHUD* HUD = Cast<AHackAndSlashHUD>(PlayerController->GetHUD());
 		if (HUD)
 		{
-			if (!EquippedWeapon)
+			if (!EquippedWeapon && IsAlive())
 			{
 				HUDPackage.CrosshairsCenter = HUD->CrosshairsCenter;
 				HUDPackage.CrosshairsLeft = HUD->CrosshairsLeft;
@@ -518,13 +518,7 @@ void AHackAndSlashCharacter::SprintStart()
 	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 	if (TargetLocked && CombatTarget)
 	{
-		SetMovementToDefault();
-		if (ITargetLockInterface* TargetLockInterface = Cast<ITargetLockInterface>(CombatTarget))
-		{
-			TargetLockInterface->HideTargetLock();
-		}
-		TargetLocked = false;
-		CombatTarget = nullptr;
+		ResetTargetLock();
 	}
 	TargetFOV = SprintFOV;
 }
@@ -745,16 +739,7 @@ void AHackAndSlashCharacter::TraceForCombatTarget(bool ShouldTargetLock)
 	}
 	if (CombatTarget)
 	{
-		if (ITargetLockInterface* TargetLockInterface = Cast<ITargetLockInterface>(CombatTarget))
-		{
-			FOnTargetDeath* OnTargetDeathDelegate = TargetLockInterface->GetOnTargetDeath();
-			if (OnTargetDeathDelegate)
-			{
-				(*OnTargetDeathDelegate).RemoveDynamic(this, &AHackAndSlashCharacter::OnTargetDeath);
-			}
-			TargetLockInterface->HideTargetLock();
-		}
-		CombatTarget = nullptr;
+		ResetTargetLock();
 	}	
 }
 
@@ -765,6 +750,7 @@ void AHackAndSlashCharacter::Die_Implementation()
 	ActionState = EActionState::EAS_Dead;
 	DisableMeshCollision();
 	PlayDeathAudio();
+	ResetTargetLock();
 }
 
 bool AHackAndSlashCharacter::HasEnoughStamina()
@@ -879,6 +865,11 @@ void AHackAndSlashCharacter::ResetCombo()
 	SaveAttack = false;
 }
 
+void AHackAndSlashCharacter::SlowTime(float TimeDilation)
+{
+	UGameplayStatics::SetGlobalTimeDilation(this, TimeDilation);
+}
+
 bool AHackAndSlashCharacter::IsAttacking()
 {
 	return ActionState == EActionState::EAS_Attacking;
@@ -962,6 +953,22 @@ void AHackAndSlashCharacter::PlayDeathAudio()
 void AHackAndSlashCharacter::ResetDoubleJump()
 {
 	JumpCount = 0;
+}
+
+void AHackAndSlashCharacter::ResetTargetLock()
+{
+	if (ITargetLockInterface* TargetLockInterface = Cast<ITargetLockInterface>(CombatTarget))
+	{
+		FOnTargetDeath* OnTargetDeathDelegate = TargetLockInterface->GetOnTargetDeath();
+		if (OnTargetDeathDelegate)
+		{
+			(*OnTargetDeathDelegate).RemoveDynamic(this, &AHackAndSlashCharacter::OnTargetDeath);
+		}
+		TargetLockInterface->HideTargetLock();
+	}
+	TargetLocked = false;
+	CombatTarget = nullptr;
+	SetMovementToDefault();
 }
 
 void AHackAndSlashCharacter::PlayNoMagicAudio()
