@@ -103,7 +103,7 @@ void AHackAndSlashCharacter::FollowTarget(float DeltaTime)
 {
 	const FVector Target = CombatTarget->GetActorLocation();
 	const FRotator CurrentRot = GetController()->GetControlRotation();
-	const FRotator TargetRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), FVector(Target.X, Target.Y, Target.Z));
+	const FRotator TargetRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Target);
 	const FRotator InterpRot = FMath::RInterpTo(CurrentRot, TargetRot, DeltaTime, 5.f);
 	const FRotator NewRot = UKismetMathLibrary::MakeRotator(CurrentRot.Roll, CurrentRot.Pitch, InterpRot.Yaw);
 	GetController()->SetControlRotation(NewRot);
@@ -466,12 +466,11 @@ void AHackAndSlashCharacter::DoMagicAttack(int32 ComboCount)
 {
 	if (CombatTarget == nullptr) TraceForCombatTarget(TargetLocked);
 
-	const FRotator CurrentRot = GetActorRotation();
 	const FRotator TargetRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), FVector(HitTarget.X, HitTarget.Y, 0.f));
 	SetActorRotation(TargetRot);
 
 	PlayMagicAttackMontage(ComboCount);
-	ActionState = EActionState::EAS_UsingMagic;
+	ActionState = EActionState::EAS_Attacking;
 	if (Attributes && Overlay)
 	{
 		Attributes->UseMagic(Attributes->GetMagicCost());
@@ -499,6 +498,11 @@ void AHackAndSlashCharacter::Dodge()
 			SectionName = FName("DodgeBack");
 		}
 	}	
+	else
+	{
+		const FRotator TargetRot = GetLastMovementInputVector().Rotation();
+		SetActorRotation(TargetRot);
+	}
 	PlayDodgeMontage(SectionName);
 	ActionState = EActionState::EAS_Dodge;
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -672,7 +676,7 @@ void AHackAndSlashCharacter::Swap()
 
 bool AHackAndSlashCharacter::CanMove()
 {
-	return ActionState == EActionState::EAS_Unoccupied || ActionState == EActionState::EAS_UsingMagic;
+	return ActionState <= EActionState::EAS_Attacking;
 }
 
 void AHackAndSlashCharacter::PlayMagicAttackMontage(int32 ComboCount)
@@ -867,7 +871,7 @@ void AHackAndSlashCharacter::ResetCombo()
 
 bool AHackAndSlashCharacter::IsAttacking()
 {
-	return ActionState == EActionState::EAS_Attacking || ActionState == EActionState::EAS_UsingMagic;
+	return ActionState == EActionState::EAS_Attacking;
 }
 
 bool AHackAndSlashCharacter::IsUnoccupied()
