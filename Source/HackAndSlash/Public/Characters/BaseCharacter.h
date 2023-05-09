@@ -22,6 +22,10 @@ class HACKANDSLASH_API ABaseCharacter : public ACharacter, public IHitInterface
 public:
 	ABaseCharacter();
 	virtual void Tick(float DeltaTime) override;
+	virtual void Attack();
+	virtual void Dodge();
+	virtual void AttackRootMotion();
+	virtual bool CanAttackWithWeapon();
 
 	//UPROPERTY(BlueprintAssignable, Category = "EventDispatchers")
 	//FOnCharacterDeath CharacterDeath;
@@ -30,16 +34,15 @@ protected:
 	virtual void BeginPlay() override;
 	/** Combat */
 	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
-	virtual void Attack();
 
 	UFUNCTION(BlueprintNativeEvent)
 	void Die();
+
 	void DirectionalHitReact(const FVector& ImpactPoint);
 	void PlayHitSound(const FVector& ImpactPoint);
 	void SpawnHitParticles(const FVector& ImpactPoint);
 	virtual void HandleDamage(float DamageAmount);
 	void DisableCapsule();
-	virtual bool CanAttackWithWeapon();
 	bool IsAlive();
 	virtual bool IsDead();
 	void DisableMeshCollision();
@@ -47,7 +50,9 @@ protected:
 	/** Montage */
 	void PlayMontageSection(UAnimMontage* Montage, const FName& SectionName);
 	virtual int32 PlayRandomAttackMontage();
+	virtual int32 PlayRandomRootMotionAttackMontage();
 	virtual void PlayAttackMontage(int32 ComboCount);
+	virtual void PlayRootMotionAttackMontage(int32 ComboCount);
 	virtual void PlayAirAttackMontage();
 	virtual int32 PlayDeathMontage();
 	virtual void PlayDodgeMontage(const FName& SectionName);
@@ -100,7 +105,13 @@ private:
 	UAnimMontage* OneHandedAttackMontage;
 
 	UPROPERTY(EditDefaultsOnly, Category = Combat)
+	UAnimMontage* OneHandedRootMotionAttackMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = Combat)
 	UAnimMontage* TwoHandedAttackMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = Combat)
+	UAnimMontage* TwoHandedRootMotionAttackMontage;
 
 	UPROPERTY(EditDefaultsOnly, Category = Combat)
 	UAnimMontage* HitReactMontage;
@@ -115,10 +126,19 @@ private:
 	TArray<FName> OneHandedAttackMontageSections;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
+	TArray<FName> OneHandedRootMotionAttackMontageSections;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
 	TArray<FName> TwoHandedAttackMontageSections;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
+	TArray<FName> TwoHandedRootMotionAttackMontageSections;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
 	TArray<FName> DeathMontageSections;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	float MaxWarpTranslation = 500.f;
 
 public:
 	FORCEINLINE TEnumAsByte<EDeathPose> GetDeathPose() const { return DeathPose; }

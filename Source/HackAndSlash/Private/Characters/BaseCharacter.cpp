@@ -39,6 +39,10 @@ void ABaseCharacter::Attack()
 	
 }
 
+void ABaseCharacter::AttackRootMotion()
+{
+}
+
 void ABaseCharacter::Die_Implementation()
 {
 	//CharacterDeath.Broadcast();
@@ -55,6 +59,15 @@ int32 ABaseCharacter::PlayRandomAttackMontage()
 	return -1;
 }
 
+int32 ABaseCharacter::PlayRandomRootMotionAttackMontage()
+{
+	if (EquippedWeapon)
+	{
+		return EquippedWeapon->IsTwoHanded ? PlayRandomMontageSection(TwoHandedRootMotionAttackMontage, TwoHandedRootMotionAttackMontageSections) : PlayRandomMontageSection(OneHandedRootMotionAttackMontage, OneHandedRootMotionAttackMontageSections);
+	}
+	return -1;
+}
+
 void ABaseCharacter::PlayAttackMontage(int32 ComboCount)
 {
 	if (EquippedWeapon->IsTwoHanded && TwoHandedAttackMontageSections.Num() - 1 >= ComboCount)
@@ -67,15 +80,27 @@ void ABaseCharacter::PlayAttackMontage(int32 ComboCount)
 	}
 }
 
+void ABaseCharacter::PlayRootMotionAttackMontage(int32 ComboCount)
+{
+	if (EquippedWeapon->IsTwoHanded && TwoHandedRootMotionAttackMontageSections.Num() - 1 >= ComboCount)
+	{
+		PlayMontageSection(TwoHandedRootMotionAttackMontage, TwoHandedRootMotionAttackMontageSections[ComboCount]);
+	}
+	else if (!EquippedWeapon->IsTwoHanded && OneHandedRootMotionAttackMontageSections.Num() - 1 >= ComboCount)
+	{
+		PlayMontageSection(OneHandedRootMotionAttackMontage, OneHandedRootMotionAttackMontageSections[ComboCount]);
+	}
+}
+
 void ABaseCharacter::PlayAirAttackMontage()
 {
 	if (EquippedWeapon->IsTwoHanded)
 	{
-		PlayMontageSection(TwoHandedAttackMontage, FName("AirAttack"));
+		PlayMontageSection(TwoHandedRootMotionAttackMontage, FName("AirAttack"));
 	}
 	else if (!EquippedWeapon->IsTwoHanded)
 	{
-		PlayMontageSection(OneHandedAttackMontage, FName("AirAttack"));
+		PlayMontageSection(OneHandedRootMotionAttackMontage, FName("AirAttack"));
 	}
 }
 
@@ -126,6 +151,10 @@ FVector ABaseCharacter::GetTranslationWarpTarget()
 	const FVector CombatTargetLocation = CombatTarget->GetActorLocation();
 	const FVector Location = GetActorLocation();
 
+	if ((Location - CombatTargetLocation).Size() - WarpTargetDistance > MaxWarpTranslation)
+	{
+		return Location;
+	}
 	FVector TargetToMe = (Location - CombatTargetLocation).GetSafeNormal();
 	TargetToMe *= WarpTargetDistance;
 	return CombatTargetLocation + TargetToMe;
@@ -138,6 +167,10 @@ FVector ABaseCharacter::GetRotationWarpTarget()
 		return CombatTarget->GetActorLocation();
 	}
 	return FVector();
+}
+
+void ABaseCharacter::Dodge()
+{
 }
 
 void ABaseCharacter::DirectionalHitReact(const FVector& ImpactPoint)

@@ -260,6 +260,7 @@ void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::Jump);
 		EnhancedInputComponent->BindAction(EKeyPressedAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::EKeyPressed);
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::Attack);
+		EnhancedInputComponent->BindAction(PowerAttackAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::AttackRootMotion);
 		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Dodge);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::SprintStart);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AHackAndSlashCharacter::SprintEnd);
@@ -283,6 +284,10 @@ void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, A
 	if (!TargetLocked)
 	{
 		CombatTarget = nullptr;
+	}
+	if (!FinishedEquipping)
+	{
+		SwapAttachedWeapons();
 	}
 	SaveAttack = false;
 	SprintEnd();
@@ -374,6 +379,40 @@ void AHackAndSlashCharacter::BeginPlay()
 	}
 }
 
+bool AHackAndSlashCharacter::CanBeSeenFrom(const FVector& ObserverLocation, FVector& OutSeenLocation, int32& NumberOfLoSChecksPerformed, float& OutSightStrength, const AActor* IgnoreActor, const bool* bWasVisible, int32* UserData) const
+{
+	static const FName NAME_AILineOfSight = FName(TEXT("TestPawnLineOfSight"));
+
+	FHitResult HitResult;
+	FVector SocketLocation = GetMesh()->GetSocketLocation(TargetBone);
+	const bool bHitSocket = GetWorld()->LineTraceSingleByObjectType(HitResult, ObserverLocation, SocketLocation, FCollisionObjectQueryParams(ECC_TO_BITFIELD(ECC_WorldStatic) | ECC_TO_BITFIELD(ECC_WorldDynamic)), FCollisionQueryParams(NAME_AILineOfSight, true, IgnoreActor));
+
+	NumberOfLoSChecksPerformed++;
+
+	if (bHitSocket == false || (HitResult.GetActor() && HitResult.GetActor()->IsOwnedBy(this)))
+	{
+		OutSeenLocation = SocketLocation;
+		OutSightStrength = 1;
+
+		return true;
+	}
+
+	const bool bHit = GetWorld()->LineTraceSingleByObjectType(HitResult, ObserverLocation, GetActorLocation(), FCollisionObjectQueryParams(ECC_TO_BITFIELD(ECC_WorldStatic) | ECC_TO_BITFIELD(ECC_WorldDynamic)), FCollisionQueryParams(NAME_AILineOfSight, true, IgnoreActor));
+
+	NumberOfLoSChecksPerformed++;
+
+	if (bHit == false || (HitResult.GetActor() && HitResult.GetActor()->IsOwnedBy(this)))
+	{
+		OutSeenLocation = GetActorLocation();
+		OutSightStrength = 1;
+
+		return true;
+	}
+
+	OutSightStrength = 0;
+	return false;
+}
+
 void AHackAndSlashCharacter::Move(const FInputActionValue& Value)
 {
 	MovementVector = Value.Get<FVector2D>();
@@ -415,20 +454,54 @@ void AHackAndSlashCharacter::EKeyPressed()
 	{
 		if (CanDisarm())
 		{
+			FinishedEquipping = false;
 			Disarm();
 		}
 		else if (CanArm())
 		{
+			FinishedEquipping = false;
 			Arm();
 		}
 		else if (CanSwap())
 		{
+			FinishedEquipping = false;
 			Swap();
 		}
 	}
 }
 
 void AHackAndSlashCharacter::Attack()
+{
+	Super::Attack();
+	if (!FinishedEquipping)
+	{
+		SwapAttachedWeapons();
+	}
+	if (IsAttacking())
+	{
+		SaveAttack = true;
+	}
+	else if (CanAttackWithWeapon())
+	{
+		if (CombatTarget == nullptr) TraceForCombatTarget(TargetLocked);
+
+		PlayAttackMontage(0);
+		ActionState = EActionState::EAS_Attacking;
+	}
+	else if (CanUseMagic())
+	{
+		if (Attributes && Attributes->GetMagic() >= Attributes->GetMagicCost())
+		{
+			DoMagicAttack(0);
+		}
+		else
+		{
+			PlayNoMagicAudio();
+		}
+	}
+}
+
+void AHackAndSlashCharacter::AttackRootMotion()
 {
 	Super::Attack();
 	if (IsAttacking())
@@ -445,7 +518,7 @@ void AHackAndSlashCharacter::Attack()
 		}
 		else
 		{
-			PlayAttackMontage(0);
+			PlayRootMotionAttackMontage(0);
 		}
 		ActionState = EActionState::EAS_Attacking;
 	}
@@ -774,6 +847,7 @@ void AHackAndSlashCharacter::AttachWeaponToBack()
 	{
 		StoredWeapon->AttachMeshToSocket(GetMesh(), FName("SpineSocket"));
 	}
+	FinishedEquipping = true;
 }
 
 void AHackAndSlashCharacter::AttachWeaponToHand()
@@ -782,6 +856,7 @@ void AHackAndSlashCharacter::AttachWeaponToHand()
 	{
 		EquippedWeapon->AttachMeshToSocket(GetMesh(), FName("RightHandSocket"));
 	}
+	FinishedEquipping = true;
 }
 
 void AHackAndSlashCharacter::SwapAttachedWeapons()
@@ -794,6 +869,7 @@ void AHackAndSlashCharacter::SwapAttachedWeapons()
 	{
 		StoredWeapon->AttachMeshToSocket(GetMesh(), FName("SpineSocket"));
 	}
+	FinishedEquipping = true;
 }
 
 void AHackAndSlashCharacter::HitReactEnd()
@@ -801,7 +877,7 @@ void AHackAndSlashCharacter::HitReactEnd()
 	ActionState = EActionState::EAS_Unoccupied;
 }
 
-void AHackAndSlashCharacter::ComboAttackSave()
+void AHackAndSlashCharacter::ComboAttackSave(bool PowerAttack)
 {
 	if (SaveAttack)
 	{
@@ -811,19 +887,19 @@ void AHackAndSlashCharacter::ComboAttackSave()
 		{
 		case 0:
 			AttackCount++;
-			PlayAttackMontage(AttackCount);
+			PowerAttack ? PlayRootMotionAttackMontage(AttackCount) : PlayAttackMontage(AttackCount);
 			break;
 		case 1:
 			AttackCount++;
-			PlayAttackMontage(AttackCount);
+			PowerAttack ? PlayRootMotionAttackMontage(AttackCount) : PlayAttackMontage(AttackCount);
 			break;
 		case 2:
 			AttackCount++;
-			PlayAttackMontage(AttackCount);
+			PowerAttack ? PlayRootMotionAttackMontage(AttackCount) : PlayAttackMontage(AttackCount);
 			break;
 		case 3:
 			AttackCount++;
-			PlayAttackMontage(AttackCount);
+			PowerAttack ? PlayRootMotionAttackMontage(AttackCount) : PlayAttackMontage(AttackCount);
 			AttackCount = 0;
 			break;
 		default:
@@ -832,7 +908,7 @@ void AHackAndSlashCharacter::ComboAttackSave()
 	}
 }
 
-void AHackAndSlashCharacter::MagicComboAttackSave()
+void AHackAndSlashCharacter::MagicComboAttackSave(bool PowerAttack)
 {
 	if (SaveAttack)
 	{
@@ -882,7 +958,7 @@ bool AHackAndSlashCharacter::IsUnoccupied()
 
 bool AHackAndSlashCharacter::IsSprinting()
 {
-	return GetCharacterMovement()->MaxWalkSpeed > DefaultSpeed && GetCharacterMovement()->IsMovingOnGround();
+	return GetCharacterMovement()->MaxWalkSpeed > DefaultSpeed && GetVelocity() != FVector::ZeroVector;
 }
 
 void AHackAndSlashCharacter::InitializeOverlay()

@@ -7,6 +7,7 @@
 #include "InputActionValue.h"
 #include "CharacterTypes.h"
 #include "Interfaces/PickupInterface.h"
+#include "Perception/AISightTargetInterface.h"
 #include "HUD/HackAndSlashHUD.h"
 #include "HackAndSlashCharacter.generated.h"
 
@@ -23,13 +24,16 @@ class AHealth;
 class AMagic;
 
 UCLASS()
-class HACKANDSLASH_API AHackAndSlashCharacter : public ABaseCharacter, public IPickupInterface
+class HACKANDSLASH_API AHackAndSlashCharacter : public ABaseCharacter, public IPickupInterface, public IAISightTargetInterface
 {
 	GENERATED_BODY()
 
 public:
 	AHackAndSlashCharacter();
 	virtual void Tick(float DeltaTime) override;
+	virtual void Attack() override;
+	virtual void AttackRootMotion() override;
+	virtual bool CanAttackWithWeapon() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
@@ -44,13 +48,15 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	// Custom View Target for AI Perception Component
+	virtual bool CanBeSeenFrom(const FVector& ObserverLocation, FVector& OutSeenLocation, int32& NumberOfLoSChecksPerformed, float& OutSightStrength, const AActor* IgnoreActor = nullptr, const bool* bWasVisible = nullptr, int32* UserData = nullptr) const override;
+
 	/** Callbacks for input */
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void EKeyPressed();
-	virtual void Attack() override;
 	void DoMagicAttack(int32 ComboCount);
-	void Dodge();
+	virtual void Dodge() override;
 	void SprintStart();
 	void SprintEnd();
 	void TargetLock();
@@ -64,7 +70,6 @@ protected:
 	void EquipWeapon(AWeapon* Weapon);
 	virtual void AttackEnd() override;
 	virtual void DodgeEnd() override;
-	virtual bool CanAttackWithWeapon() override;
 	bool CanUseMagic();
 	bool CanDisarm();
 	void Disarm();
@@ -106,19 +111,22 @@ protected:
 	void HitReactEnd();	
 
 	UFUNCTION(BlueprintCallable)
-	void ComboAttackSave();
+	void ComboAttackSave(bool PowerAttack);
 
 	UFUNCTION(BlueprintCallable)
-	void MagicComboAttackSave();
+	void MagicComboAttackSave(bool PowerAttack);
 
 	UFUNCTION(BlueprintCallable)
 	void ResetCombo();
 
 	UFUNCTION(BlueprintCallable)
-	void SlowTime(float TimeDilation);
+	void SlowTime(float TimeDilation);	
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	FVector BoxTraceExtend = FVector(100.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+	FName TargetBone = "Head";
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputMappingContext* HackAndSlashMappingContext;
@@ -152,6 +160,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputAction* DropWeaponAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	UInputAction* PowerAttackAction;
 
 private:
 	bool IsAttacking();
@@ -244,6 +255,7 @@ private:
 	FVector2D MovementVector;
 	FVector HitTarget;
 	FHUDPackage HUDPackage;
+	bool FinishedEquipping;
 
 	/**
 	 * HUD and crosshairs
