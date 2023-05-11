@@ -54,8 +54,10 @@ protected:
 	/** Callbacks for input */
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
+	void ControllerLook(const FInputActionValue& Value);
 	void EKeyPressed();
 	void DoMagicAttack(int32 ComboCount);
+	void DoStrongMagicAttack();
 	virtual void Dodge() override;
 	void SprintStart();
 	void SprintEnd();
@@ -79,6 +81,7 @@ protected:
 	void Swap();
 	bool CanMove();
 	void PlayMagicAttackMontage(int32 ComboCount);
+	void PlayStrongMagicAttackMontage();
 	void PlayEquipMontage(const FName& SectionName);
 	void BoxTrace(TArray<FHitResult>& BoxHits);
 	void TraceForCombatTarget(bool ShouldTargetLock);
@@ -95,8 +98,14 @@ protected:
 
 	void ShootProjectile(const FVector& Target, const FName& SocketName);
 
+	UFUNCTION(BlueprintCallable)
+	void ShootStrongProjectile();
+
 	UPROPERTY(EditAnywhere, Category = Combat)
 	TSubclassOf<class AProjectile> EnergyProjectileClass;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	TSubclassOf<class AProjectile> StrongProjectileClass;
 
 	UFUNCTION(BlueprintCallable)
 	void AttachWeaponToBack();
@@ -136,6 +145,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputAction* LookAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	UInputAction* ControllerLookAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputAction* JumpAction;
@@ -202,6 +214,9 @@ private:
 	UAnimMontage* MagicAttackMontage;
 
 	UPROPERTY(EditDefaultsOnly, Category = Montages)
+	UAnimMontage* StrongMagicAttackMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = Montages)
 	UAnimMontage* LevelStartMontage;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
@@ -243,6 +258,18 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = Movement)
 	float AimingFOV = 30.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = Movement)
+	float LookSensitivityYaw = 2.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = Movement)
+	float LookSensitivityPitch = 1.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = Movement)
+	float AimLookSensitivityYaw = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = Movement)
+	float AimLookSensitivityPitch = .5f;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	float TargetTraceLength = 80000.f;

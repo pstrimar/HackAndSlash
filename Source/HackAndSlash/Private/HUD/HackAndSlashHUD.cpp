@@ -3,6 +3,7 @@
 
 #include "HUD/HackAndSlashHUD.h"
 #include "HUD/HackAndSlashOverlay.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 
 void AHackAndSlashHUD::BeginPlay()
 {
@@ -79,6 +80,46 @@ void AHackAndSlashHUD::DrawHUD()
         {
             FVector2D Spread(0.f, SpreadScaled);
             DrawCrosshair(HUDPackage.CrosshairsBottom, ViewportCenter, Spread, HUDPackage.CrosshairsColor);
+        }
+    }
+}
+
+void AHackAndSlashHUD::ShowDeathScreen()
+{
+    UWorld* World = GetWorld();
+    if (World)
+    {
+        APlayerController* Controller = World->GetFirstPlayerController();
+        if (Controller && DeathScreenClass)
+        {
+            if (Overlay)
+            {
+                Overlay->RemoveFromParent();
+            }
+            UUserWidget* DeathScreenOverlay = CreateWidget<UUserWidget>(Controller, DeathScreenClass);
+            DeathScreenOverlay->AddToViewport();
+            UWidgetBlueprintLibrary::SetInputMode_UIOnlyEx(Controller, DeathScreenOverlay);
+            Controller->SetShowMouseCursor(true);
+        }
+    }
+}
+
+void AHackAndSlashHUD::ShowWinScreen()
+{
+    UWorld* World = GetWorld();
+    if (World)
+    {
+        APlayerController* Controller = World->GetFirstPlayerController();
+        if (Controller && WinScreenClass)
+        {
+            if (Overlay)
+            {
+                Overlay->RemoveFromParent();
+            }
+            UUserWidget* WinScreenOverlay = CreateWidget<UUserWidget>(Controller, WinScreenClass);
+            WinScreenOverlay->AddToViewport();
+            UWidgetBlueprintLibrary::SetInputMode_UIOnlyEx(Controller, WinScreenOverlay);
+            Controller->SetShowMouseCursor(true);
         }
     }
 }

@@ -249,6 +249,28 @@ void AHackAndSlashCharacter::ShootProjectile(const FVector& Target, const FName&
 	}
 }
 
+void AHackAndSlashCharacter::ShootStrongProjectile()
+{
+	if (StrongProjectileClass)
+	{
+		const FVector StartingLocation = GetMesh()->GetSocketLocation(FName("Muzzle_02"));
+		FVector ToTarget = HitTarget - StartingLocation;
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			World->SpawnActor<AProjectile>(
+				StrongProjectileClass,
+				StartingLocation,
+				ToTarget.Rotation(),
+				SpawnParams
+				);
+		}
+	}
+}
+
 void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -257,6 +279,7 @@ void AHackAndSlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 	{
 		EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::Look);
+		EnhancedInputComponent->BindAction(ControllerLookAction, ETriggerEvent::Triggered, this, &AHackAndSlashCharacter::ControllerLook);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::Jump);
 		EnhancedInputComponent->BindAction(EKeyPressedAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::EKeyPressed);
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AHackAndSlashCharacter::Attack);
@@ -362,7 +385,6 @@ void AHackAndSlashCharacter::Landed(const FHitResult& Hit)
 void AHackAndSlashCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
@@ -370,9 +392,11 @@ void AHackAndSlashCharacter::BeginPlay()
 			Subsystem->AddMappingContext(HackAndSlashMappingContext, 0);
 		}
 	}
-
+	UE_LOG(LogTemp, Warning, TEXT("Begin Play"));
 	Tags.Add(FName("EngageableTarget"));
 	InitializeOverlay();
+	SlowTime(1.f);
+	ActionState = EActionState::EAS_Unoccupied;
 	if (LevelStartMontage)
 	{
 		PlayMontageSection(LevelStartMontage, FName("Default"));
@@ -437,9 +461,22 @@ void AHackAndSlashCharacter::Look(const FInputActionValue& Value)
 	{
 		if (!TargetLocked)
 		{
-			AddControllerYawInput(LookAxisValue.X);
+			AddControllerYawInput(LookAxisValue.X * (bAiming ? AimLookSensitivityYaw : 1.f));
 		}
-		AddControllerPitchInput(LookAxisValue.Y);
+		AddControllerPitchInput(LookAxisValue.Y * (bAiming ? AimLookSensitivityPitch : 1.f));
+	}
+}
+
+void AHackAndSlashCharacter::ControllerLook(const FInputActionValue& Value)
+{
+	const FVector2D LookAxisValue = Value.Get<FVector2D>();
+	if (GetController() && LookAxisValue != FVector2D::ZeroVector)
+	{
+		if (!TargetLocked)
+		{
+			AddControllerYawInput(LookAxisValue.X * (bAiming ? AimLookSensitivityYaw : LookSensitivityYaw));
+		}
+		AddControllerPitchInput(LookAxisValue.Y * (bAiming ? AimLookSensitivityPitch : LookSensitivityPitch));
 	}
 }
 
@@ -524,9 +561,9 @@ void AHackAndSlashCharacter::AttackRootMotion()
 	}
 	else if (CanUseMagic())
 	{
-		if (Attributes && Attributes->GetMagic() >= Attributes->GetMagicCost())
+		if (Attributes && Attributes->GetMagic() >= Attributes->GetStrongMagicCost())
 		{
-			DoMagicAttack(0);
+			DoStrongMagicAttack();
 		}
 		else
 		{
@@ -552,12 +589,29 @@ void AHackAndSlashCharacter::DoMagicAttack(int32 ComboCount)
 	}
 }
 
+void AHackAndSlashCharacter::DoStrongMagicAttack()
+{
+	if (CombatTarget == nullptr) TraceForCombatTarget(TargetLocked);
+
+	FRotator TargetRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), FVector(HitTarget.X, HitTarget.Y, 0.f));
+	TargetRot.Pitch = 0.f;
+	SetActorRotation(TargetRot);
+
+	PlayStrongMagicAttackMontage();
+	ActionState = EActionState::EAS_Attacking;
+	if (Attributes && Overlay)
+	{
+		Attributes->UseMagic(Attributes->GetStrongMagicCost());
+		Overlay->SetMagicBarPercent(Attributes->GetMagicPercent());
+	}
+}
+
 void AHackAndSlashCharacter::Dodge()
 {
 	if (IsOccupied() || !HasEnoughStamina()) return;
 
 	FName SectionName = FName("DodgeForward");
-	if (TargetLocked && MovementVector != FVector2D::ZeroVector)
+	if (TargetLocked && GetLastMovementInputVector() != FVector::ZeroVector)
 	{
 		if (MovementVector.X > 0.f)
 		{
@@ -572,7 +626,7 @@ void AHackAndSlashCharacter::Dodge()
 			SectionName = FName("DodgeBack");
 		}
 	}	
-	else
+	else if (GetLastMovementInputVector() != FVector::ZeroVector)
 	{
 		const FRotator TargetRot = GetLastMovementInputVector().Rotation();
 		SetActorRotation(TargetRot);
@@ -765,6 +819,14 @@ void AHackAndSlashCharacter::PlayMagicAttackMontage(int32 ComboCount)
 	}
 }
 
+void AHackAndSlashCharacter::PlayStrongMagicAttackMontage()
+{
+	if (StrongMagicAttackMontage)
+	{
+		PlayMontageSection(StrongMagicAttackMontage, FName("Attack1"));
+	}
+}
+
 void AHackAndSlashCharacter::PlayEquipMontage(const FName& SectionName)
 {
 	UAnimInstance* AnimInstace = GetMesh()->GetAnimInstance();
@@ -825,6 +887,16 @@ void AHackAndSlashCharacter::Die_Implementation()
 	DisableMeshCollision();
 	PlayDeathAudio();
 	ResetTargetLock();
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		AHackAndSlashHUD* HUD = Cast<AHackAndSlashHUD>(PlayerController->GetHUD());
+		if (HUD)
+		{
+			HUD->ShowDeathScreen();
+		}		
+	}
+
 }
 
 bool AHackAndSlashCharacter::HasEnoughStamina()

@@ -63,6 +63,9 @@ private:
 	int32 MagicCost = 20.f;
 
 	UPROPERTY(EditAnywhere, Category = "Actor Attributes")
+	int32 StrongMagicCost = 40.f;
+
+	UPROPERTY(EditAnywhere, Category = "Actor Attributes")
 	int32 SprintCost = 16.f;
 
 	UPROPERTY(EditAnywhere, Category = "Actor Attributes")
@@ -87,6 +90,7 @@ public:
 	FORCEINLINE int32 GetSoulsDropped() const { return SoulsDropped; }
 	FORCEINLINE float GetDodgeCost() const { return DodgeCost; }
 	FORCEINLINE float GetMagicCost() const { return MagicCost; }
+	FORCEINLINE float GetStrongMagicCost() const { return StrongMagicCost; }
 	FORCEINLINE float GetSprintCost() const { return SprintCost; }
 	FORCEINLINE float GetMagic() const { return Magic; }
 	FORCEINLINE float GetMagicDropped() const { return MagicDropped; }

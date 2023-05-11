@@ -29,6 +29,8 @@ class HACKANDSLASH_API AHackAndSlashHUD : public AHUD
 
 public:
 	virtual void DrawHUD() override;
+	void ShowDeathScreen();
+	void ShowWinScreen();
 
 	/**
 	 * Textures for the crosshairs
@@ -59,6 +61,12 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = HackAndSlash)
 	TSubclassOf<UHackAndSlashOverlay> HackAndSlashOverlayClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = HackAndSlash)
+	TSubclassOf<UUserWidget> DeathScreenClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = HackAndSlash)
+	TSubclassOf<UUserWidget> WinScreenClass;
 
 	UPROPERTY()
 	UHackAndSlashOverlay* Overlay;

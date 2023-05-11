@@ -27,14 +27,17 @@ void ASpawnEnemyVolume::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, A
 	{
 		FActorSpawnParameters SpawnParams;
 		UWorld* World = GetWorld();
-		if (World && SpawnLocation)
+		if (World && SpawnLocations.Num() > 0 )
 		{
-			World->SpawnActor<AEnemy>(
-				SpawnedEnemyClass,
-				SpawnLocation->GetActorLocation(),
-				SpawnLocation->GetActorRotation(),
-				SpawnParams
-				);
+			for (int i = 0; i < SpawnLocations.Num(); i++)
+			{
+				World->SpawnActor<AEnemy>(
+					SpawnedEnemyClass,
+					SpawnLocations[i]->GetActorLocation(),
+					SpawnLocations[i]->GetActorRotation(),
+					SpawnParams
+					);
+			}			
 		}
 
 		Destroy();

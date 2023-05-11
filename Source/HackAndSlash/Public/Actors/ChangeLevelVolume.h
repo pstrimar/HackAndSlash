@@ -4,18 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "SpawnEnemyVolume.generated.h"
+#include "ChangeLevelVolume.generated.h"
 
 class UBoxComponent;
-class AEnemy;
 
 UCLASS()
-class HACKANDSLASH_API ASpawnEnemyVolume : public AActor
+class HACKANDSLASH_API AChangeLevelVolume : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
-	ASpawnEnemyVolume();
+	AChangeLevelVolume();
 
 protected:
 	virtual void BeginPlay() override;
@@ -25,11 +24,8 @@ protected:
 
 private:
 	UPROPERTY(VisibleAnywhere)
-	UBoxComponent* SpawnTriggerBox;
+	UBoxComponent* TriggerBox;
 
 	UPROPERTY(EditAnywhere)
-	TSubclassOf<AEnemy> SpawnedEnemyClass;
-
-	UPROPERTY(EditInstanceOnly)
-	TArray<AActor*> SpawnLocations;
+	FName Level;
 };
