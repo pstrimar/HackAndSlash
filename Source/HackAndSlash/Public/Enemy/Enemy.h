@@ -7,10 +7,12 @@
 #include "Characters/CharacterTypes.h"
 #include "Interfaces/TargetLockInterface.h"
 #include "Interfaces/InteractWithCrosshairsInterface.h"
+#include "Components/TimelineComponent.h"
 #include "Enemy.generated.h"
 
 class UHealthBarComponent;
 class UWidgetComponent;
+class AEnemyAIController;
 
 UCLASS()
 class HACKANDSLASH_API AEnemy : public ABaseCharacter, public ITargetLockInterface, public IInteractWithCrosshairsInterface
@@ -69,6 +71,13 @@ private:
 	void ClearDodgeTimer();
 	bool InTargetRange(AActor* Target, double Radius);
 	void SpawnDefaultWeapons();
+	void PlaySpawnMontage();
+
+	UFUNCTION(BlueprintCallable)
+	void OnSpawnEnd();
+
+	UPROPERTY(EditDefaultsOnly, Category = Combat)
+	UAnimMontage* SpawnMontage;
 
 	UPROPERTY(VisibleAnywhere)
 	UHealthBarComponent* HealthBarWidget;
@@ -78,6 +87,12 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AWeapon> WeaponClass;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AWeapon> ImpactWeaponClass;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AWeapon> FrontWeaponClass;
 	
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	AWeapon* EquippedWeaponSecondary;	
@@ -95,7 +110,8 @@ private:
 	double PatrolRadius = 200.f;
 
 	UPROPERTY()
-	class AAIController* EnemyController;
+	AEnemyAIController* EnemyController;
+
 	FTimerHandle DodgeTimer;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
@@ -127,6 +143,31 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	bool TwoWeapons;
+
+	/**
+	* Dissolve effect
+	*/
+
+	UPROPERTY(VisibleAnywhere)
+	UTimelineComponent* DissolveTimeline;
+
+	FOnTimelineFloat DissolveTrack;
+
+	UPROPERTY(EditAnywhere)
+	UCurveFloat* DissolveCurve;
+
+	UFUNCTION()
+	void UpdateDissolveMaterial(float DissolveValue);
+
+	void StartDissolve();
+
+	// Dynamic instance that we can change at runtime
+	UPROPERTY(VisibleAnywhere, Category = Death)
+	TArray<UMaterialInstanceDynamic*> DynamicDissolveMaterialInstances;
+
+	// Material instance set on the Blueprint, used with the dynamic material instance
+	UPROPERTY(EditAnywhere, Category = Death)
+	TArray<UMaterialInstance*> DissolveMaterialInstances;
 
 public:
 	FORCEINLINE double GetAttackRadius() const { return AttackRadius; }

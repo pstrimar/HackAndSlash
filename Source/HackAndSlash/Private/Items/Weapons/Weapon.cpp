@@ -105,16 +105,19 @@ void AWeapon::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 {
 	if (ActorIsSameType(OtherActor)) return;
 
-	FHitResult BoxHit;
-	BoxTrace(BoxHit);
+	TArray<FHitResult> BoxHits;
+	BoxTrace(BoxHits);
 
-	if (BoxHit.GetActor())
+	for (auto BoxHit : BoxHits)
 	{
-		if (ActorIsSameType(BoxHit.GetActor())) return;
-		UGameplayStatics::ApplyDamage(BoxHit.GetActor(), Damage, GetInstigator()->GetController(), this, UDamageType::StaticClass());
-		ExecuteGetHit(BoxHit);
-		CreateFields(BoxHit.ImpactPoint);
-	}
+		if (BoxHit.GetActor())
+		{
+			if (ActorIsSameType(BoxHit.GetActor())) return;
+			UGameplayStatics::ApplyDamage(BoxHit.GetActor(), Damage, GetInstigator()->GetController(), this, UDamageType::StaticClass());
+			ExecuteGetHit(BoxHit);
+			CreateFields(BoxHit.ImpactPoint);
+		}
+	}	
 }
 
 bool AWeapon::ActorIsSameType(AActor* OtherActor)
@@ -131,7 +134,7 @@ void AWeapon::ExecuteGetHit(FHitResult& BoxHit)
 	}
 }
 
-void AWeapon::BoxTrace(FHitResult& BoxHit)
+void AWeapon::BoxTrace(TArray<FHitResult>& BoxHits)
 {
 	const FVector Start = BoxTraceStart->GetComponentLocation();
 	const FVector End = BoxTraceEnd->GetComponentLocation();
@@ -145,7 +148,10 @@ void AWeapon::BoxTrace(FHitResult& BoxHit)
 		ActorsToIgnore.AddUnique(Actor);
 	}
 
-	UKismetSystemLibrary::BoxTraceSingle(this, Start, End, BoxTraceExtend, BoxTraceStart->GetComponentRotation(), ETraceTypeQuery::TraceTypeQuery1, false, ActorsToIgnore, bShowBoxDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None, BoxHit, true);
+	UKismetSystemLibrary::BoxTraceMulti(this, Start, End, BoxTraceExtend, BoxTraceStart->GetComponentRotation(), ETraceTypeQuery::TraceTypeQuery1, false, ActorsToIgnore, bShowBoxDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None, BoxHits, true);
 
-	IgnoreActors.AddUnique(BoxHit.GetActor());
+	for (auto BoxHit : BoxHits)
+	{
+		IgnoreActors.AddUnique(BoxHit.GetActor());
+	}
 }

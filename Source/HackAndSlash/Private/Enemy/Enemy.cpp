@@ -2,7 +2,7 @@
 
 
 #include "Enemy/Enemy.h"
-#include "AIController.h"
+#include "Enemy/EnemyAIController.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -33,6 +33,8 @@ AEnemy::AEnemy()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
+
+	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
 }
 
 void AEnemy::Tick(float DeltaTime)
@@ -44,7 +46,10 @@ float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AC
 {
 	HandleDamage(DamageAmount);
 	CombatTarget = EventInstigator->GetPawn();
-
+	if (EnemyController)
+	{
+		EnemyController->SetTarget(CombatTarget);
+	}
 	return DamageAmount;
 }
 
@@ -63,7 +68,11 @@ void AEnemy::Destroyed()
 void AEnemy::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
 {
 	Super::GetHit_Implementation(ImpactPoint, Hitter);
-	if (!IsDead()) ShowHealthBar();
+	if (!IsDead())
+	{
+		ShowHealthBar();
+		EnemyState = EEnemyState::EES_NoState;
+	}
 	ClearDodgeTimer();
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 	StopAttackMontage();
@@ -83,6 +92,11 @@ void AEnemy::BeginPlay()
 
 	InitializeEnemy();
 	Tags.Add(FName("Enemy"));
+	if (SpawnMontage)
+	{
+		PlaySpawnMontage();
+		GetCharacterMovement()->DisableMovement();
+	}
 }
 
 void AEnemy::Die_Implementation()
@@ -96,10 +110,26 @@ void AEnemy::Die_Implementation()
 	SetLifeSpan(DeathLifeSpan);
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+	SetGroundImpactCollisionEnabled(ECollisionEnabled::NoCollision);
 	DisableMeshCollision();
 	SpawnSoulPickup();
 	SpawnHealthPickup();
 	SpawnMagicPickup();
+
+	// Start dissolve effect
+	if (DissolveMaterialInstances.Num() > 0)
+	{
+		for (int i = 0; i < DissolveMaterialInstances.Num(); i++)
+		{
+			UMaterialInstanceDynamic* DynamicDissolveMatInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstances[i], this);
+			DynamicDissolveMaterialInstances.Add(DynamicDissolveMatInstance);
+			GetMesh()->SetMaterial(i, DynamicDissolveMaterialInstances[i]);
+			DynamicDissolveMaterialInstances[i]->SetScalarParameterValue(TEXT("Dissolve"), -0.55f);
+			DynamicDissolveMaterialInstances[i]->SetScalarParameterValue(TEXT("Glow"), 200.f);
+		}
+
+	}
+	StartDissolve();
 }
 
 void AEnemy::Dodge()
@@ -217,7 +247,7 @@ void AEnemy::SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled)
 
 void AEnemy::InitializeEnemy()
 {
-	EnemyController = Cast<AAIController>(GetController());
+	EnemyController = Cast<AEnemyAIController>(GetController());
 	HideHealthBar();
 	SpawnDefaultWeapons();
 }
@@ -333,6 +363,49 @@ void AEnemy::SpawnDefaultWeapons()
 			DefaultWeapon->Equip(GetMesh(), FName("WeaponSocket"), this, this);
 			EquippedWeapon = DefaultWeapon;
 		}
+		if (ImpactWeaponClass)
+		{
+			AWeapon* ImpactWeapon = World->SpawnActor<AWeapon>(ImpactWeaponClass);
+			ImpactWeapon->Equip(GetMesh(), FName("ImpactWeaponSocket"), this, this);
+			GroundImpactWeapon = ImpactWeapon;
+		}
+		if (FrontWeaponClass)
+		{
+			AWeapon* FrontCastWeapon = World->SpawnActor<AWeapon>(FrontWeaponClass);
+			FrontCastWeapon->Equip(GetMesh(), FName("FrontWeaponSocket"), this, this);
+			FrontWeapon = FrontCastWeapon;
+		}
+	}
+}
+
+void AEnemy::PlaySpawnMontage()
+{
+	PlayMontageSection(SpawnMontage, FName("Spawn"));
+}
+
+void AEnemy::OnSpawnEnd()
+{
+	GetCharacterMovement()->SetDefaultMovementMode();
+}
+
+void AEnemy::UpdateDissolveMaterial(float DissolveValue)
+{
+	if (DynamicDissolveMaterialInstances.Num() > 0)
+	{
+		for (auto Instance : DynamicDissolveMaterialInstances)
+		{
+			Instance->SetScalarParameterValue(TEXT("Dissolve"), DissolveValue);
+		}
+	}
+}
+
+void AEnemy::StartDissolve()
+{
+	DissolveTrack.BindDynamic(this, &AEnemy::UpdateDissolveMaterial);
+	if (DissolveCurve && DissolveTimeline)
+	{
+		DissolveTimeline->AddInterpFloat(DissolveCurve, DissolveTrack);
+		DissolveTimeline->Play();
 	}
 }
 

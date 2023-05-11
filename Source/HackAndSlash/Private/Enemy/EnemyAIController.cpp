@@ -29,24 +29,51 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 	AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AEnemyAIController::OnPerception);
 }
 
+void AEnemyAIController::OnDeath()
+{
+	Destroy();
+}
+
 void AEnemyAIController::BeginPlay()
 {
 	Super::BeginPlay();
+	InitializeBehaviorTree();
+}
+
+void AEnemyAIController::InitializeBehaviorTree()
+{
 	if (AEnemy* Enemy = Cast<AEnemy>(GetPawn()))
 	{
 		Agent = Enemy;
-	}
+		if (ITargetLockInterface* TargetLockInterface = Cast<ITargetLockInterface>(Agent))
+		{
+			FOnTargetDeath* OnTargetDeathDelegate = TargetLockInterface->GetOnTargetDeath();
+			if (OnTargetDeathDelegate)
+			{
+				(*OnTargetDeathDelegate).AddDynamic(this, &AEnemyAIController::OnDeath);
+			}
+		}
+		if (AIBehavior)
+		{
+			RunBehaviorTree(AIBehavior);
 
-	if (AIBehavior)
-	{
-		RunBehaviorTree(AIBehavior);
-		GetBlackboardComponent()->SetValueAsVector(FName("StartLocation"), GetPawn()->GetActorLocation());
+			if (GetPawn())
+			{
+				GetBlackboardComponent()->SetValueAsVector(FName("StartLocation"), GetPawn()->GetActorLocation());
+			}
+		}
+		InitializedBehaviorTree = true;
 	}
 }
 
 void AEnemyAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (!InitializedBehaviorTree && GetPawn())
+	{
+		InitializeBehaviorTree();
+	}
 }
 
 void AEnemyAIController::OnPerception(AActor* Actor, FAIStimulus Stimulus)

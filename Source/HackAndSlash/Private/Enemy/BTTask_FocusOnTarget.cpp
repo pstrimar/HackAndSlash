@@ -49,7 +49,10 @@ EBTNodeResult::Type UBTTask_FocusOnTarget::AbortTask(UBehaviorTreeComponent& Own
 	{
 		OwnerComp.GetAIOwner()->ClearFocus(EAIFocusPriority::Gameplay);
 
-		OwnerComp.GetAIOwner()->GetPawn()->bUseControllerRotationYaw = false;
+		if (OwnerComp.GetAIOwner()->GetPawn())
+		{
+			OwnerComp.GetAIOwner()->GetPawn()->bUseControllerRotationYaw = false;
+		}
 	}
 	return EBTNodeResult::Aborted;
 }

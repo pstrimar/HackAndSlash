@@ -29,6 +29,9 @@ public:
 
 	virtual void OnPossess(APawn* InPawn) override;
 
+	UFUNCTION()
+	void OnDeath();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -36,11 +39,15 @@ protected:
 	class UAIPerceptionComponent* AIPerceptionComponent;
 
 private:
+	void InitializeBehaviorTree();
+
 	UPROPERTY(EditAnywhere)
 	class UBehaviorTree* AIBehavior;
 
 	AActor* Target;
+	bool InitializedBehaviorTree;
 
 public:
 	FORCEINLINE AActor* GetTarget() const { return Target; }
+	FORCEINLINE void SetTarget(AActor* NewTarget) { Target = NewTarget; }
 };

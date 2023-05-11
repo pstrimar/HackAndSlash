@@ -539,7 +539,8 @@ void AHackAndSlashCharacter::DoMagicAttack(int32 ComboCount)
 {
 	if (CombatTarget == nullptr) TraceForCombatTarget(TargetLocked);
 
-	const FRotator TargetRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), FVector(HitTarget.X, HitTarget.Y, 0.f));
+	FRotator TargetRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), FVector(HitTarget.X, HitTarget.Y, 0.f));
+	TargetRot.Pitch = 0.f;
 	SetActorRotation(TargetRot);
 
 	PlayMagicAttackMontage(ComboCount);

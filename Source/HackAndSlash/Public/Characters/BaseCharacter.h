@@ -12,8 +12,6 @@ class AWeapon;
 class UAttributeComponent;
 class UAnimMontage;
 
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCharacterDeath);
-
 UCLASS()
 class HACKANDSLASH_API ABaseCharacter : public ACharacter, public IHitInterface
 {
@@ -26,9 +24,6 @@ public:
 	virtual void Dodge();
 	virtual void AttackRootMotion();
 	virtual bool CanAttackWithWeapon();
-
-	//UPROPERTY(BlueprintAssignable, Category = "EventDispatchers")
-	//FOnCharacterDeath CharacterDeath;
 
 protected:
 	virtual void BeginPlay() override;
@@ -74,8 +69,20 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	virtual void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled);
 
+	UFUNCTION(BlueprintCallable)
+	virtual void SetGroundImpactCollisionEnabled(ECollisionEnabled::Type CollisionEnabled);
+
+	UFUNCTION(BlueprintCallable)
+	virtual void SetFrontWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled);
+
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	AWeapon* EquippedWeapon;
+
+	UPROPERTY(VisibleAnywhere, Category = Weapon)
+	AWeapon* GroundImpactWeapon;
+
+	UPROPERTY(VisibleAnywhere, Category = Weapon)
+	AWeapon* FrontWeapon;
 
 	UPROPERTY(VisibleAnywhere)
 	UAttributeComponent* Attributes;

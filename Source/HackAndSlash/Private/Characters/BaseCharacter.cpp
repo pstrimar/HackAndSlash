@@ -297,3 +297,21 @@ void ABaseCharacter::SetWeaponCollisionEnabled(ECollisionEnabled::Type Collision
 	}
 }
 
+void ABaseCharacter::SetGroundImpactCollisionEnabled(ECollisionEnabled::Type CollisionEnabled)
+{
+	if (GroundImpactWeapon && GroundImpactWeapon->GetWeaponBox())
+	{
+		GroundImpactWeapon->GetWeaponBox()->SetCollisionEnabled(CollisionEnabled);
+		GroundImpactWeapon->IgnoreActors.Empty();
+	}
+}
+
+void ABaseCharacter::SetFrontWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled)
+{
+	if (FrontWeapon && FrontWeapon->GetWeaponBox())
+	{
+		FrontWeapon->GetWeaponBox()->SetCollisionEnabled(CollisionEnabled);
+		FrontWeapon->IgnoreActors.Empty();
+	}
+}
+

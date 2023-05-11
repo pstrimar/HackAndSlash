@@ -42,7 +42,7 @@ protected:
 	void CreateFields(const FVector& FieldLocation);
 
 private:
-	void BoxTrace(FHitResult& BoxHit);
+	void BoxTrace(TArray<FHitResult>& BoxHits);
 
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	FVector BoxTraceExtend = FVector(5.f);
