@@ -25,5 +25,8 @@ private:
 	UPROPERTY(EditAnywhere)
 	float Radius = 200.f;
 
+	UPROPERTY(EditAnywhere)
+	bool bWanderFromStartLocation;
+
 	class AEnemy* Enemy;
 };

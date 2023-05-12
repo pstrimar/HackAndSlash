@@ -28,9 +28,11 @@ EBTNodeResult::Type UBTTaskNode_Strafe::ExecuteTask(UBehaviorTreeComponent& Owne
 		return EBTNodeResult::Failed;
 	}
 	int Negation = StrafeRight ? 1 : -1;
+
+	// Trace to left or right, if no hit, continue
 	FHitResult TraceHitResult;
 	const FVector Start = Enemy->GetActorLocation() + Enemy->GetActorRightVector() * 200.f * Negation;
-	const FVector End = Start + Enemy->GetActorRightVector() * 200.f * Negation;
+	FVector End = Start + Enemy->GetActorRightVector() * 200.f * Negation;
 	GetWorld()->LineTraceSingleByChannel(
 		TraceHitResult,
 		Start,
@@ -40,8 +42,23 @@ EBTNodeResult::Type UBTTaskNode_Strafe::ExecuteTask(UBehaviorTreeComponent& Owne
 
 	if (TraceHitResult.bBlockingHit)
 	{
-		return EBTNodeResult::Failed;
+		return EBTNodeResult::Aborted;
 	}
+
+	// Trace down, if no hit, do not continue
+	End = Start + (FVector::DownVector * 300.f);
+	GetWorld()->LineTraceSingleByChannel(
+		TraceHitResult,
+		Start,
+		End,
+		ECollisionChannel::ECC_WorldStatic
+	);
+
+	if (!TraceHitResult.bBlockingHit)
+	{
+		return EBTNodeResult::Aborted;
+	}
+
 	Enemy->AddMovementInput(Enemy->GetActorRightVector() * Negation);
 	Enemy->SetIsStrafing(true);	
 

@@ -28,7 +28,7 @@ EBTNodeResult::Type UBTTask_FindWanderLocation::ExecuteTask(UBehaviorTreeCompone
 	}
 	FNavLocation ResultLocation;
 
-	if (UNavigationSystemV1::GetCurrent(GetWorld())->GetRandomReachablePointInRadius(Enemy->GetActorLocation(), Radius, ResultLocation))
+	if (UNavigationSystemV1::GetCurrent(GetWorld())->GetRandomReachablePointInRadius(bWanderFromStartLocation ? OwnerComp.GetBlackboardComponent()->GetValueAsVector(FName("StartLocation")) : Enemy->GetActorLocation(), Radius, ResultLocation))
 	{
 		OwnerComp.GetBlackboardComponent()->SetValueAsVector(GetSelectedBlackboardKey(), ResultLocation.Location);
 	}
@@ -36,7 +36,7 @@ EBTNodeResult::Type UBTTask_FindWanderLocation::ExecuteTask(UBehaviorTreeCompone
 	{
 		OwnerComp.GetBlackboardComponent()->SetValueAsVector(GetSelectedBlackboardKey(), Enemy->GetActorLocation());
 	}
-	Enemy->SetIsStrafing(true);
+	Enemy->SetIsStrafing(!bWanderFromStartLocation);
 
 	return EBTNodeResult::Succeeded;
 }

@@ -37,6 +37,8 @@ public:
 	bool IsInsideAttackRadius();
 	bool IsAttacking();
 	bool IsEngaged();
+	bool CanCast();
+	void Cast();
 
 	UPROPERTY(BlueprintAssignable, Category = "EventDispatchers")
 	FOnTargetDeath OnTargetDeath;
@@ -55,6 +57,12 @@ protected:
 	virtual void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled) override;
 	virtual bool IsDead() override;
 
+	UFUNCTION(BlueprintCallable)
+	void ShootProjectiles();
+
+	UFUNCTION()
+	void ShootProjectile(const FVector& StartLocation, const FRotator& Rotation);
+
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	EEnemyState EnemyState = EEnemyState::EES_Patrolling;
 
@@ -72,12 +80,16 @@ private:
 	bool InTargetRange(AActor* Target, double Radius);
 	void SpawnDefaultWeapons();
 	void PlaySpawnMontage();
+	void PlayCastMontage();
 
 	UFUNCTION(BlueprintCallable)
 	void OnSpawnEnd();
 
 	UPROPERTY(EditDefaultsOnly, Category = Combat)
 	UAnimMontage* SpawnMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = Combat)
+	UAnimMontage* CastMontage;
 
 	UPROPERTY(VisibleAnywhere)
 	UHealthBarComponent* HealthBarWidget;
@@ -143,6 +155,30 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	bool TwoWeapons;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	TSubclassOf<class AProjectile> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	TArray<USceneComponent*> ProjectileStartLocations;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	USceneComponent* ProjectileStartLocation1;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	USceneComponent* ProjectileStartLocation2;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	USceneComponent* ProjectileStartLocation3;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	USceneComponent* ProjectileStartLocation4;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	USceneComponent* ProjectileStartLocation5;
+
+	TArray<FTimerHandle> ProjectileTimers;
+	FTimerDelegate ShootProjectileDelegate;
 
 	/**
 	* Dissolve effect

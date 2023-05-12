@@ -9,6 +9,7 @@
 UBTTask_EnemyMoveTo::UBTTask_EnemyMoveTo()
 {
 	NodeName = TEXT("Enemy Move To");
+	bNotifyTick = true;
 }
 
 EBTNodeResult::Type UBTTask_EnemyMoveTo::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)

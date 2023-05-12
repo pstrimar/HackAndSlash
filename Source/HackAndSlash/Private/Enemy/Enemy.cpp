@@ -13,6 +13,7 @@
 #include "Items/Soul.h"
 #include "Items/Health.h"
 #include "Items/Magic.h"
+#include "Items/Weapons/Projectile.h"
 
 AEnemy::AEnemy()
 {
@@ -35,6 +36,22 @@ AEnemy::AEnemy()
 	bUseControllerRotationRoll = false;
 
 	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
+
+	ProjectileStartLocation1 = CreateDefaultSubobject<USceneComponent>(TEXT("ProjectileStartLocation1"));
+	ProjectileStartLocation1->SetupAttachment(GetRootComponent());
+	ProjectileStartLocations.Emplace(ProjectileStartLocation1);
+	ProjectileStartLocation2 = CreateDefaultSubobject<USceneComponent>(TEXT("ProjectileStartLocation2"));
+	ProjectileStartLocation2->SetupAttachment(GetRootComponent());
+	ProjectileStartLocations.Emplace(ProjectileStartLocation2);
+	ProjectileStartLocation3 = CreateDefaultSubobject<USceneComponent>(TEXT("ProjectileStartLocation3"));
+	ProjectileStartLocation3->SetupAttachment(GetRootComponent());
+	ProjectileStartLocations.Emplace(ProjectileStartLocation3);
+	ProjectileStartLocation4 = CreateDefaultSubobject<USceneComponent>(TEXT("ProjectileStartLocation4"));
+	ProjectileStartLocation4->SetupAttachment(GetRootComponent());
+	ProjectileStartLocations.Emplace(ProjectileStartLocation4);
+	ProjectileStartLocation5 = CreateDefaultSubobject<USceneComponent>(TEXT("ProjectileStartLocation5"));
+	ProjectileStartLocation5->SetupAttachment(GetRootComponent());
+	ProjectileStartLocations.Emplace(ProjectileStartLocation5);
 }
 
 void AEnemy::Tick(float DeltaTime)
@@ -211,6 +228,11 @@ bool AEnemy::CanAttackWithWeapon()
 	return IsInsideAttackRadius() && !IsAttacking() && !IsEngaged() && !IsDead();
 }
 
+bool AEnemy::CanCast()
+{
+	return !IsAttacking() && !IsEngaged() && !IsDead();
+}
+
 void AEnemy::AttackEnd()
 {
 	EnemyState = EEnemyState::EES_NoState;
@@ -247,7 +269,7 @@ void AEnemy::SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled)
 
 void AEnemy::InitializeEnemy()
 {
-	EnemyController = Cast<AEnemyAIController>(GetController());
+	EnemyController = GetController<AEnemyAIController>();
 	HideHealthBar();
 	SpawnDefaultWeapons();
 }
@@ -320,9 +342,61 @@ bool AEnemy::IsDead()
 	return EnemyState == EEnemyState::EES_Dead;
 }
 
+void AEnemy::ShootProjectiles()
+{
+	if (ProjectileClass && ProjectileStartLocations.Num() > 0)
+	{
+		if (ProjectileTimers.Num() != ProjectileStartLocations.Num())
+		{
+			for (int i = 0; i < ProjectileStartLocations.Num(); i++)
+			{
+				FTimerHandle Timer;
+				ProjectileTimers.Emplace(Timer);
+			}
+		}
+		float FireTime = 0.f;
+		for (int i = 0; i < ProjectileStartLocations.Num(); i++)
+		{
+			const FVector Location = ProjectileStartLocations[i]->GetComponentLocation();
+			const FRotator Rotation = ProjectileStartLocations[i]->GetComponentRotation();
+			ShootProjectileDelegate.BindUFunction(this, FName("ShootProjectile"), Location, Rotation);
+			GetWorldTimerManager().SetTimer(ProjectileTimers[i], ShootProjectileDelegate, FireTime, false);
+			FireTime += 0.1f;
+		}
+	}
+}
+
+void AEnemy::ShootProjectile(const FVector& StartLocation, const FRotator& Rotation)
+{
+	if (ProjectileClass)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
+
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			World->SpawnActor<AProjectile>(
+				ProjectileClass,
+				StartLocation,
+				Rotation,
+				SpawnParams
+				);
+		}		
+	}	
+}
+
 bool AEnemy::IsEngaged()
 {
 	return EnemyState == EEnemyState::EES_Engaged;
+}
+
+void AEnemy::Cast()
+{
+	if (CombatTarget == nullptr) return;
+	EnemyState = EEnemyState::EES_Engaged;
+	PlayCastMontage();
 }
 
 void AEnemy::StartDodgeTimer()
@@ -381,6 +455,11 @@ void AEnemy::SpawnDefaultWeapons()
 void AEnemy::PlaySpawnMontage()
 {
 	PlayMontageSection(SpawnMontage, FName("Spawn"));
+}
+
+void AEnemy::PlayCastMontage()
+{
+	PlayMontageSection(CastMontage, FName("Attack1"));
 }
 
 void AEnemy::OnSpawnEnd()

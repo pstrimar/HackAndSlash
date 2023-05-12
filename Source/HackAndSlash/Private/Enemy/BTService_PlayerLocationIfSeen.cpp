@@ -26,7 +26,7 @@ void UBTService_PlayerLocationIfSeen::TickNode(UBehaviorTreeComponent& OwnerComp
 		return;
 	}
 
-	if (EnemyAIController->GetTarget() != nullptr)
+	if (EnemyAIController->GetTarget() != nullptr && !EnemyAIController->GetTarget()->ActorHasTag(FName("Dead")))
 	{
 		OwnerComp.GetBlackboardComponent()->SetValueAsVector(GetSelectedBlackboardKey(), EnemyAIController->GetTarget()->GetActorLocation());
 	}
