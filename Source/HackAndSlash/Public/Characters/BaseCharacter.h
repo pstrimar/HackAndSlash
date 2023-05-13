@@ -24,6 +24,7 @@ public:
 	virtual void Dodge();
 	virtual void AttackRootMotion();
 	virtual bool CanAttackWithWeapon();
+	virtual void PlaySpawnMontage();
 
 protected:
 	virtual void BeginPlay() override;
@@ -65,6 +66,12 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	virtual void DodgeEnd();
+
+	UFUNCTION(BlueprintCallable)
+	virtual void SpawnEnd();
+
+	UFUNCTION(BlueprintCallable)
+	virtual void SpawnBegin();
 
 	UFUNCTION(BlueprintCallable)
 	virtual void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled);
@@ -128,6 +135,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = Combat)
 	UAnimMontage* DodgeMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = Combat)
+	UAnimMontage* SpawnMontage;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	TArray<FName> OneHandedAttackMontageSections;

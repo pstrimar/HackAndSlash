@@ -72,6 +72,7 @@ protected:
 	void EquipWeapon(AWeapon* Weapon);
 	virtual void AttackEnd() override;
 	virtual void DodgeEnd() override;
+	virtual void SpawnEnd() override;
 	bool CanUseMagic();
 	bool CanDisarm();
 	void Disarm();
@@ -216,16 +217,13 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Montages)
 	UAnimMontage* StrongMagicAttackMontage;
 
-	UPROPERTY(EditDefaultsOnly, Category = Montages)
-	UAnimMontage* LevelStartMontage;
-
 	UPROPERTY(EditAnywhere, Category = Combat)
 	TArray<FName> MagicAttackMontageSections;
 
 	ECharacterState CharacterState = ECharacterState::ECS_Unequipped;
 
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
-	EActionState ActionState = EActionState::EAS_Unoccupied;
+	EActionState ActionState = EActionState::EAS_Spawning;
 
 	UPROPERTY()
 	UHackAndSlashOverlay* Overlay;

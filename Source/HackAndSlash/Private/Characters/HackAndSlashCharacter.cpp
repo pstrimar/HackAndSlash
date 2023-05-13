@@ -396,11 +396,7 @@ void AHackAndSlashCharacter::BeginPlay()
 	Tags.Add(FName("EngageableTarget"));
 	InitializeOverlay();
 	SlowTime(1.f);
-	ActionState = EActionState::EAS_Unoccupied;
-	if (LevelStartMontage)
-	{
-		PlayMontageSection(LevelStartMontage, FName("Default"));
-	}
+	PlaySpawnMontage();
 }
 
 bool AHackAndSlashCharacter::CanBeSeenFrom(const FVector& ObserverLocation, FVector& OutSeenLocation, int32& NumberOfLoSChecksPerformed, float& OutSightStrength, const AActor* IgnoreActor, const bool* bWasVisible, int32* UserData) const
@@ -740,6 +736,11 @@ void AHackAndSlashCharacter::DodgeEnd()
 	Super::DodgeEnd();
 	ActionState = EActionState::EAS_Unoccupied;
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+}
+
+void AHackAndSlashCharacter::SpawnEnd()
+{
+	ActionState = EActionState::EAS_Unoccupied;
 }
 
 bool AHackAndSlashCharacter::CanAttackWithWeapon()

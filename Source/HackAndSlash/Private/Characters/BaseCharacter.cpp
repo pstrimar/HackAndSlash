@@ -120,6 +120,11 @@ void ABaseCharacter::PlayDodgeMontage(const FName& SectionName)
 	PlayMontageSection(DodgeMontage, SectionName);
 }
 
+void ABaseCharacter::PlaySpawnMontage()
+{
+	PlayMontageSection(SpawnMontage, FName("Spawn"));
+}
+
 void ABaseCharacter::DisableCapsule()
 {
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -280,6 +285,15 @@ void ABaseCharacter::AttackEnd()
 
 void ABaseCharacter::DodgeEnd()
 {
+}
+
+void ABaseCharacter::SpawnEnd()
+{
+}
+
+void ABaseCharacter::SpawnBegin()
+{
+	GetMesh()->SetVisibility(true);
 }
 
 void ABaseCharacter::Tick(float DeltaTime)

@@ -53,6 +53,7 @@ protected:
 	void SpawnMagicPickup();
 	virtual void AttackEnd() override;
 	virtual void DodgeEnd() override;
+	virtual void SpawnEnd() override;
 	virtual void HandleDamage(float DamageAmount) override;
 	virtual void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled) override;
 	virtual bool IsDead() override;
@@ -79,14 +80,7 @@ private:
 	void ClearDodgeTimer();
 	bool InTargetRange(AActor* Target, double Radius);
 	void SpawnDefaultWeapons();
-	void PlaySpawnMontage();
-	void PlayCastMontage();
-
-	UFUNCTION(BlueprintCallable)
-	void OnSpawnEnd();
-
-	UPROPERTY(EditDefaultsOnly, Category = Combat)
-	UAnimMontage* SpawnMontage;
+	void PlayCastMontage();	
 
 	UPROPERTY(EditDefaultsOnly, Category = Combat)
 	UAnimMontage* CastMontage;

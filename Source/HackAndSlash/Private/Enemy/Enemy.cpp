@@ -109,11 +109,8 @@ void AEnemy::BeginPlay()
 
 	InitializeEnemy();
 	Tags.Add(FName("Enemy"));
-	if (SpawnMontage)
-	{
-		PlaySpawnMontage();
-		GetCharacterMovement()->DisableMovement();
-	}
+	PlaySpawnMontage();
+	GetCharacterMovement()->DisableMovement();
 }
 
 void AEnemy::Die_Implementation()
@@ -452,17 +449,12 @@ void AEnemy::SpawnDefaultWeapons()
 	}
 }
 
-void AEnemy::PlaySpawnMontage()
-{
-	PlayMontageSection(SpawnMontage, FName("Spawn"));
-}
-
 void AEnemy::PlayCastMontage()
 {
 	PlayMontageSection(CastMontage, FName("Attack1"));
 }
 
-void AEnemy::OnSpawnEnd()
+void AEnemy::SpawnEnd()
 {
 	GetCharacterMovement()->SetDefaultMovementMode();
 }
