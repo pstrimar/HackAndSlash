@@ -26,6 +26,7 @@
 #include "Items/Health.h"
 #include "Items/Magic.h"
 #include "Interfaces/TargetLockInterface.h"
+#include "Camera/CameraShakeBase.h"
 
 AHackAndSlashCharacter::AHackAndSlashCharacter()
 {
@@ -117,50 +118,52 @@ void AHackAndSlashCharacter::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 		GEngine->GameViewport->GetViewportSize(ViewportSize);
 	}
 
-	FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
-	FVector CrosshairWorldPosition;
-	FVector CrosshairWorldDirection;
-	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
-		UGameplayStatics::GetPlayerController(this, 0),
-		CrosshairLocation,
-		CrosshairWorldPosition,
-		CrosshairWorldDirection
-	);
-
-	if (bScreenToWorld)
+	if (PlayerController)
 	{
-		FVector Start = CrosshairWorldPosition;
-
-		float DistanceToCharacter = (GetActorLocation() - Start).Size();
-		Start += CrosshairWorldDirection * (DistanceToCharacter + 100.f);
-		FVector End = Start + CrosshairWorldDirection * TargetTraceLength;
-
-		GetWorld()->LineTraceSingleByChannel(
-			TraceHitResult,
-			Start,
-			End,
-			ECollisionChannel::ECC_Visibility
+		FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
+		FVector CrosshairWorldPosition;
+		FVector CrosshairWorldDirection;
+		bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
+			PlayerController,
+			CrosshairLocation,
+			CrosshairWorldPosition,
+			CrosshairWorldDirection
 		);
 
-		if (!TraceHitResult.bBlockingHit)
+		if (bScreenToWorld)
 		{
-			TraceHitResult.ImpactPoint = End;
-		}
+			FVector Start = CrosshairWorldPosition;
 
-		if (TraceHitResult.GetActor() && TraceHitResult.GetActor()->Implements<UInteractWithCrosshairsInterface>())
-		{
-			HUDPackage.CrosshairsColor = FLinearColor::Red;
-		}
-		else
-		{
-			HUDPackage.CrosshairsColor = FLinearColor::White;
+			float DistanceToCharacter = (GetActorLocation() - Start).Size();
+			Start += CrosshairWorldDirection * (DistanceToCharacter + 100.f);
+			FVector End = Start + CrosshairWorldDirection * TargetTraceLength;
+
+			GetWorld()->LineTraceSingleByChannel(
+				TraceHitResult,
+				Start,
+				End,
+				ECollisionChannel::ECC_Visibility
+			);
+
+			if (!TraceHitResult.bBlockingHit)
+			{
+				TraceHitResult.ImpactPoint = End;
+			}
+
+			if (TraceHitResult.GetActor() && TraceHitResult.GetActor()->Implements<UInteractWithCrosshairsInterface>())
+			{
+				HUDPackage.CrosshairsColor = FLinearColor::Red;
+			}
+			else
+			{
+				HUDPackage.CrosshairsColor = FLinearColor::White;
+			}
 		}
 	}
 }
 
 void AHackAndSlashCharacter::SetHUDCrosshairs(float DeltaTime)
 {
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (PlayerController)
 	{
 		AHackAndSlashHUD* HUD = Cast<AHackAndSlashHUD>(PlayerController->GetHUD());
@@ -246,6 +249,7 @@ void AHackAndSlashCharacter::ShootProjectile(const FVector& Target, const FName&
 				SpawnParams
 				);
 		}
+		ShakeCamera();
 	}
 }
 
@@ -268,6 +272,7 @@ void AHackAndSlashCharacter::ShootStrongProjectile()
 				SpawnParams
 				);
 		}
+		ShakeCamera();
 	}
 }
 
@@ -312,9 +317,11 @@ void AHackAndSlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, A
 	{
 		SwapAttachedWeapons();
 	}
+	SlowTime(1.f);
 	SaveAttack = false;
 	SprintEnd();
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+	ShakeCamera();
 	if (IsAlive())
 	{
 		ActionState = EActionState::EAS_HitReaction;
@@ -385,14 +392,14 @@ void AHackAndSlashCharacter::Landed(const FHitResult& Hit)
 void AHackAndSlashCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+	PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(HackAndSlashMappingContext, 0);
 		}
 	}
-	UE_LOG(LogTemp, Warning, TEXT("Begin Play"));
 	Tags.Add(FName("EngageableTarget"));
 	InitializeOverlay();
 	SlowTime(1.f);
@@ -440,7 +447,7 @@ void AHackAndSlashCharacter::Move(const FInputActionValue& Value)
 
 	if (GetController() && MovementVector != FVector2D::ZeroVector)
 	{
-		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator Rotation = GetController()->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
 
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
@@ -674,6 +681,7 @@ void AHackAndSlashCharacter::AimButtonPressed()
 	if (EquippedWeapon) return;
 
 	bAiming = true;
+	SlowTime(.5f);
 	GetCharacterMovement()->MaxWalkSpeed = AimWalkSpeed;
 	TargetFOV = AimingFOV;
 }
@@ -682,6 +690,7 @@ void AHackAndSlashCharacter::AimButtonReleased()
 {
 	if (EquippedWeapon) return;
 	bAiming = false;
+	SlowTime(1.f);
 	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
 	TargetFOV = DefaultFOV;
 }
@@ -888,7 +897,6 @@ void AHackAndSlashCharacter::Die_Implementation()
 	DisableMeshCollision();
 	PlayDeathAudio();
 	ResetTargetLock();
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (PlayerController)
 	{
 		AHackAndSlashHUD* HUD = Cast<AHackAndSlashHUD>(PlayerController->GetHUD());
@@ -1037,7 +1045,6 @@ bool AHackAndSlashCharacter::IsSprinting()
 
 void AHackAndSlashCharacter::InitializeOverlay()
 {
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (PlayerController)
 	{
 		AHackAndSlashHUD* HUD = Cast<AHackAndSlashHUD>(PlayerController->GetHUD());
@@ -1119,6 +1126,14 @@ void AHackAndSlashCharacter::ResetTargetLock()
 	TargetLocked = false;
 	CombatTarget = nullptr;
 	SetMovementToDefault();
+}
+
+void AHackAndSlashCharacter::ShakeCamera()
+{
+	if (CameraShake)
+	{
+		UGameplayStatics::PlayWorldCameraShake(this, CameraShake, GetActorLocation(), 0.f, 500.f);
+	}
 }
 
 void AHackAndSlashCharacter::PlayNoMagicAudio()

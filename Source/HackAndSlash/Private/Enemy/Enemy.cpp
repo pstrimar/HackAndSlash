@@ -110,7 +110,7 @@ void AEnemy::BeginPlay()
 	InitializeEnemy();
 	Tags.Add(FName("Enemy"));
 	PlaySpawnMontage();
-	GetCharacterMovement()->DisableMovement();
+	Tags.Add(FName("Spawning"));
 }
 
 void AEnemy::Die_Implementation()
@@ -456,7 +456,7 @@ void AEnemy::PlayCastMontage()
 
 void AEnemy::SpawnEnd()
 {
-	GetCharacterMovement()->SetDefaultMovementMode();
+	Tags.Remove(FName("Spawning"));
 }
 
 void AEnemy::UpdateDissolveMaterial(float DissolveValue)

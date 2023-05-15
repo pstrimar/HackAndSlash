@@ -10,6 +10,7 @@ void ATreasure::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 	if (PickupInterface)
 	{
 		PickupInterface->AddGold(this);
+		SpawnPickupSystem();
 		SpawnPickupSound();
 		Destroy();
 	}

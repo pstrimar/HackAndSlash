@@ -28,7 +28,7 @@ EBTNodeResult::Type UBTTask_FindWanderLocation::ExecuteTask(UBehaviorTreeCompone
 	}
 	FNavLocation ResultLocation;
 
-	if (UNavigationSystemV1::GetCurrent(GetWorld())->GetRandomReachablePointInRadius(bWanderFromStartLocation ? OwnerComp.GetBlackboardComponent()->GetValueAsVector(FName("StartLocation")) : Enemy->GetActorLocation(), Radius, ResultLocation))
+	if (!Enemy->ActorHasTag(FName("Spawning")) && UNavigationSystemV1::GetCurrent(GetWorld())->GetRandomReachablePointInRadius(bWanderFromStartLocation ? OwnerComp.GetBlackboardComponent()->GetValueAsVector(FName("StartLocation")) : Enemy->GetActorLocation(), Radius, ResultLocation))
 	{
 		OwnerComp.GetBlackboardComponent()->SetValueAsVector(GetSelectedBlackboardKey(), ResultLocation.Location);
 	}

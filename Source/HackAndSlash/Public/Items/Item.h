@@ -8,6 +8,9 @@
 
 class USphereComponent;
 class UNiagaraComponent;
+class UNiagaraSystem;
+class UParticleSystemComponent;
+class UParticleSystem;
 
 enum class EItemState : uint8
 {
@@ -64,6 +67,9 @@ protected:
 	UNiagaraComponent* ItemEffect;
 
 	UPROPERTY(EditAnywhere)
+	UParticleSystemComponent* ParticleSystem;
+
+	UPROPERTY(EditAnywhere)
 	USoundBase* PickupSound;
 
 private:
@@ -71,7 +77,10 @@ private:
 	float RunningTime;
 
 	UPROPERTY(EditAnywhere)
-	class UNiagaraSystem* PickupEffect;
+	UNiagaraSystem* PickupEffectNiagaraSystem;
+
+	UPROPERTY(EditAnywhere)
+	UParticleSystem* PickupEffectParticleSystem;
 
 public:
 	FORCEINLINE UStaticMeshComponent* GetItemMesh() const { return ItemMesh; }

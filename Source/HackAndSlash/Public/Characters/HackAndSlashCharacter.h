@@ -22,6 +22,7 @@ class ASoul;
 class ATreasure;
 class AHealth;
 class AMagic;
+class UCameraShakeBase;
 
 UCLASS()
 class HACKANDSLASH_API AHackAndSlashCharacter : public ABaseCharacter, public IPickupInterface, public IAISightTargetInterface
@@ -188,6 +189,7 @@ private:
 	void PlayDeathAudio();
 	void ResetDoubleJump();
 	void ResetTargetLock();
+	void ShakeCamera();
 
 	UFUNCTION()
 	void OnTargetDeath();
@@ -275,12 +277,16 @@ private:
 	UPROPERTY(EditAnywhere)
 	float CameraThreshold = 200.f;
 
+	UPROPERTY(EditAnywhere, Category = "Camera Shake")
+	TSubclassOf<UCameraShakeBase> CameraShake;
+
 	float TargetFOV;
 	bool TargetLocked;
 	FVector2D MovementVector;
 	FVector HitTarget;
 	FHUDPackage HUDPackage;
 	bool FinishedEquipping;
+	APlayerController* PlayerController;
 
 	/**
 	 * HUD and crosshairs

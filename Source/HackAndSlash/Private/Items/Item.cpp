@@ -8,6 +8,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystemComponent.h"
 
 AItem::AItem()
 {
@@ -23,6 +24,9 @@ AItem::AItem()
 
 	ItemEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Embers"));
 	ItemEffect->SetupAttachment(GetRootComponent());
+
+	ParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Particles"));
+	ParticleSystem->SetupAttachment(GetRootComponent());
 }
 
 void AItem::BeginPlay()
@@ -63,9 +67,13 @@ void AItem::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 
 void AItem::SpawnPickupSystem()
 {
-	if (PickupEffect)
+	if (PickupEffectNiagaraSystem)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, PickupEffect, GetActorLocation());
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, PickupEffectNiagaraSystem, GetActorLocation());
+	}
+	if (PickupEffectParticleSystem)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, PickupEffectParticleSystem, GetActorLocation());
 	}
 }
 
